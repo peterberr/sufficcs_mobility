@@ -12,7 +12,7 @@ import pickle
 # German city-postcode dictionaries, loaded as pickle files
 
 # outputs:
-# population density by municipality
+# population density by postcode
 # summary stats on population, area, and area distribution of postcodes (or other spatial units)
 
 cities=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien']

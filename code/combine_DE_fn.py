@@ -199,7 +199,7 @@ def combine_survey_data(city):
 
     # load in UF stats
     # population density
-    pop_dens=pd.read_csv('../shapefiles/density_geounits/' + city + '_pop_density.csv',dtype={'geo_unit':str})
+    pop_dens=pd.read_csv('../outputs/density_geounits/' + city + '_pop_density.csv',dtype={'geo_unit':str})
     pop_dens.drop(columns=['geometry','note','population','area'],inplace=True)
     # building density and distance to city center
     bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'plz':str})
