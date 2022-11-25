@@ -68,7 +68,7 @@ a_file = open(city_plz_fp, "rb")
 city_plz_dict = pickle.load(a_file)
 
 # read in shapefile of user-defined city centers
-centers=import_csv_w_wkt_to_gdf('../shapefiles/citycenters/centers.csv',crs=4326)
+centers=import_csv_w_wkt_to_gdf('../source/citycenters/centers.csv',crs=4326)
 centers.to_crs(crs0,inplace=True)
 
 def subcenters(city):
@@ -81,7 +81,7 @@ def subcenters(city):
     fp='../../MSCA_data/BuildingsDatabase/germany/' + city + '_attrib.csv'  
     at=pd.read_csv(fp)
     # read in file of city boundaries
-    fp='../shapefiles/city_boundaries/' + city + '.csv'  
+    fp='../outputs/city_boundaries/' + city + '.csv'  
     gdf_boundary = import_csv_w_wkt_to_gdf(fp,crs=crs0,geometry_col='geometry')
     # check how many buildings are inside the boundary
     check=buildings_gdf.within(gdf_boundary.at[0,'geometry'])
@@ -316,7 +316,7 @@ def subcenters(city):
     plz_vol=pd.DataFrame(jn3.groupby('plz')['volume'].sum())#
     plz_vol.reset_index(drop=False,inplace=True)
 
-    # create gdf of weighted centers
+    # create gdf of weighted centers, defined by the points x_mean, y_mean
     data=[]
     for pc in city_poly['plz']:
         if (city_poly.loc[city_poly['plz']==pc,'bldg_data']=='Yes').bool():
