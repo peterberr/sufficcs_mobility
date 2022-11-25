@@ -1,0 +1,20 @@
+City,geometry,note
+Lille,Point(3.07038 50.63188),Square Augustin Laurent
+Clermont,Point(3.08629 45.77744),Opéra-Théâtre de Clermont-Ferrand
+Lyon,Point(4.835503 45.752196),Pont de l'Université de Lyon
+Toulouse,Point(1.44319 43.60239),Musée du Vieux Toulouse
+Dijon,Point(5.038809 47.321973),"Cross of Rue de la Liberte, Rue Dauphine"
+Nantes,Point(-1.55848 47.21446),Place Royale
+Paris,Point(2.34696 48.85511),Pont Neuf
+Montpellier,Point(3.87706 43.60888),Paroisse La Theopani
+Nimes,Point(4.35902 43.83726),Cross of Rue de Bernis and Rue de l'Aspic
+Berlin,Point(13.38883 52.51700) ,Unter den Linden
+Dresden,Point(13.73798 51.04959),Altmarkt
+Leipzig,Point(12.37472 51.34057),Markt
+Potsdam,Point(13.04799 52.39956),Brandenburg Tor
+Magdeburg,Point(11.6352 52.12927),Goldschmiedebrücke
+Kassel,Point(9.48889 51.31408),Wilhelmsstraße / Stadtmuseum
+Frankfurt am Main,Point(8.68385 50.11063),Markt/Dom/Roemer
+Düsseldorf,Point(6.78785 51.22374),Little Tokyo Düsseldorf
+Madrid,Point(-3.703529 40.416931),Puerta del Sol
+Wien,Point(16.371238 48.208147),Stephansplatz Station
