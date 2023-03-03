@@ -1,5 +1,5 @@
 # script to calculat population density by spatial units in French cities
-# last update Peter Berrill Nov 25 2022
+# last update Peter Berrill Mar 3 2023
 
 import pandas as pd
 import geopandas as gpd
@@ -10,6 +10,8 @@ from matplotlib_scalebar.scalebar import ScaleBar
 import pickle
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
+from citymob import remove_holes, remove_invalid_geoms
+import sys
 
 # inputs:
 # French spatial unit (differs by city) shapefiles, data directly from surveys
@@ -22,32 +24,6 @@ from shapely.validation import make_valid
 # summary stats on population, area, and area distribution of gemeinden (or other spatial units)
 # figures showing spatial units for each resolution
 # pickled dictionaries to translate the geocodes from the survey to the mixed-res ids needed to merge with the geospatial data
-
-def remove_invalid_geoms(gdf,crs0,gdf_name):
-    '''
-    Identify invalid geometries, and replace them with valid geometries using the Shapely `make_valid` method.
-    '''
-    gdf['valid']=gdf.is_valid
-    if any(gdf.is_valid==False):
-        pc=round(100*sum(gdf.is_valid==False)/len(gdf))
-        print(str(pc) + 'percent of geometries are invalid in ' + gdf_name)
-        ivix=gdf.loc[gdf['valid']==False,].index
-        geos=[]
-        for i in ivix:
-            gi=make_valid(gdf.loc[i,'geometry'])
-            geos.append(gi)
-        d=gdf.loc[gdf['valid']==False,].drop(columns=['geometry','valid'])
-        d['geometry']=geos
-        gdfv=gpd.GeoDataFrame(d,crs=crs0)
-        gdfv['valid']=gdfv.is_valid
-        gdf_new=gpd.GeoDataFrame(pd.concat([gdf.loc[gdf['valid']==True,:],gdfv]),crs=crs0)
-        gdf_new.sort_index(inplace=True)
-        gdf=gdf_new.copy()
-
-        if any(gdf_new.is_valid==False):
-            print('Unable to make valid all geometries')
-    
-    return(gdf)
 
 # size_thresh=10  # km2 if this threshold is smaller than 12.91 km2, then need to insert an exception for Lyon geometry 247551 within faulty geometry 247003
 # in pg 10 of the 'ATLAS' pdf file for Clermont, we see that there are 32 zones where face to face interviews were done in the region of Greater Clermont. 24 further sectors in the broader had telephone interviews.
@@ -64,16 +40,24 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gpd.read_file(fp)
         gdf.to_crs(crs0,inplace=True)
         geo_unit=gdf['NUM_DTIR'].sort_values().unique()
+        # limit to DTIRs 101:119, this corresponds to the PTU SMTC (Périmètre des Transports Urbains, Syndicat Mixte des Transports en Commun),
+        # or 21 communes of  Clermont Communauté (replaced by Clermont Auvergne Métropole in 2018, but survey is from 2012)
         geo_unit=geo_unit[0:19]
+        gdf=gdf.loc[gdf['NUM_DTIR'].isin(geo_unit),] 
+        # clean up (remove holes and make invalid geoms valid)
+        gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
+        gdf=remove_holes(gdf,100,city)
 
         # make a shapefile consisting only of the larger sector geo units
-        gdf=gdf.loc[gdf['NUM_DTIR'].isin(geo_unit),] 
         gdf2=gdf[['DTIR','geometry']].dissolve(by='DTIR').reset_index()
+        # clean up
+        gdf2=remove_invalid_geoms(gdf2,crs0,'gdf2',city)
+        gdf2=remove_holes(gdf2,100,city)
+
         # calculate area of geo units for each gdf
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
         gdf['area']=gdf.area*1e-6 # in km2
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
         gdf2['area']=gdf2.area*1e-6
+
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'DFIN':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'DTIR':'geo_unit'},inplace=True)
@@ -92,9 +76,10 @@ def french_density_shapefiles(city,size_thresh):
         survey_yr=2014
         fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_Zones fines.mid'
         gdf=gpd.read_file(fp)
-        #gdf=gdf.loc[(gdf['ID_ENQ']==1) & (gdf['NUM_SECTEUR'].astype('int')<58),]
+        # boundary of gdf is set below for Montpellier
         gdf=gdf.to_crs(crs0)
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
+        gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
+        gdf=remove_holes(gdf,100,city)
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
@@ -105,7 +90,8 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=gdf2.loc[(gdf2['ID_ENQ']==1) & (gdf2['DTIR'].isin(geo_unit)),]
         gdf=gdf.loc[(gdf['ID_ENQ']==1) & (gdf['NUM_SECTEUR'].isin(geo_unit)),]
         gdf2=gdf2.to_crs(crs0)
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
+        gdf2=remove_invalid_geoms(gdf2,crs0,'gdf2',city)
+        gdf2=remove_holes(gdf2,100,city)
         gdf2['area']=gdf2.area*1e-6
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'NUM_ZF_2013':'geo_unit_highres'},inplace=True)
@@ -125,19 +111,23 @@ def french_density_shapefiles(city,size_thresh):
         survey_yr=2015
         fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_ZF_GT.TAB'
         gdf=gpd.read_file(fp)
-        # restrict to D12 zones 01 to 04 (DTIR<258), these are sufficiently close to the center of Lyon, and combined make up an area of 841km2
+        # restrict to D12 zones 01 to 04 (DTIR<258), these are sufficiently close to the center of Lyon, and combined make up an area of 841km2 (quite largr).
+        # It corresponds to all of Métropole de Lyon plus some additional nearby regions: Sepal, + a little bit of Ouest Rhône
         geo_unit=gdf.loc[gdf['DTIR'].astype('int')<258,'DTIR'].sort_values().unique()
         gdf=gdf.loc[gdf['DTIR'].isin(geo_unit),] 
         gdf=gdf.to_crs(crs0)
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
+        gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
+        gdf=remove_holes(gdf,100,city)
         gdf['area']=gdf.area*1e-6
 
+        # load a shapefile consisting only of the larger sector geo units
         fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_DTIR.TAB'
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['DTIR'].isin(geo_unit),] 
         gdf2=gdf2.to_crs(crs0)
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
+        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
+        gdf2=remove_holes(gdf2,100,city)
         gdf2['area']=gdf2.area*1e-6
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'ZF2015_Nouveau_codage':'geo_unit_highres'},inplace=True)
@@ -159,15 +149,19 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gpd.read_file(fp)
         gdf.to_crs(crs0,inplace=True)
         geo_unit=gdf['SECTEUR_EMD2013'].sort_values().unique()
+        # restrict to Toulouse and it's near periphery, as shown on on pg2 of this document https://www.tisseo.fr/sites/default/files/Enquete_menage_deplacement.pdf, which makes up 781km2
         geo_unit=geo_unit[0:56]
+        gdf=gdf.loc[gdf['SECTEUR_EMD2013'].isin(geo_unit),] 
+        # clean up
+        gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
+        gdf=remove_holes(gdf,100,city)
 
         # make a shapefile consisting only of the larger sector geo units
-        gdf=gdf.loc[gdf['SECTEUR_EMD2013'].isin(geo_unit),] 
         gdf2=gdf[['SECTEUR_EMD2013','geometry']].dissolve(by='SECTEUR_EMD2013').reset_index()
+        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
+        gdf2=remove_holes(gdf2,100,city)
         # # calculate area of geo units for each gdf
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
         gdf['area']=gdf.area*1e-6 # in km2
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
         gdf2['area']=gdf2.area*1e-6
         # # rename geounits for constitency with all French cities
         gdf.rename(columns={'ZF_SEC_EMD2013':'geo_unit_highres'},inplace=True)
@@ -187,20 +181,26 @@ def french_density_shapefiles(city,size_thresh):
         survey_yr=2015
         fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_ZF.TAB'
         gdf=gpd.read_file(fp)
+
+        # restrict to Nantes Metropole
         geo_unit=gdf.loc[gdf['NOM_D10']=='Nantes Métropole','NUM_DTIR'].sort_values().unique()
         gdf=gdf.loc[gdf['NUM_DTIR'].isin(geo_unit),] 
         gdf=gdf.to_crs(crs0)
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
+        gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
+        gdf=remove_holes(gdf,100,city)
         gdf['area']=gdf.area*1e-6
 
+        # load a shapefile consisting only of the larger sector geo units
         fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_DTIR.TAB'
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['NUM_DTIR'].isin(geo_unit),] 
         gdf2=gdf2.to_crs(crs0)
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
+        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
+        gdf2=remove_holes(gdf2,100,city)
         gdf2['area']=gdf2.area*1e-6
-        # # rename geounits for constitency with all French cities
+
+        # rename geounits for constitency with all French cities
         gdf.rename(columns={'Id_zf_cerema':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
@@ -218,20 +218,25 @@ def french_density_shapefiles(city,size_thresh):
         survey_yr=2015
         fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_ZF.TAB'
         gdf=gpd.read_file(fp)
-        # restrict to D12 zones 01 to 04, these are sufficiently close to the center of Lyon, and combined make up an area of 841km2
-        geo_unit=gdf.loc[gdf['NOM_DTIR']=='NIMES','NUM_DTIR'].sort_values().unique() # restricting to the Nimes hors hypercentre, which covers dtir 1-20.
+        # restrict to Nimes city, which covers dtir 1-20. This is small (161km2). Could optionally extend to Communauté d'agglomération Nîmes Métropole, but that would leave us with a very low density (326/km2) and it is questionable whether that area is 'city'
+        geo_unit=gdf.loc[gdf['NOM_DTIR']=='NIMES','NUM_DTIR'].sort_values().unique()  
         gdf=gdf.loc[gdf['NUM_DTIR'].isin(geo_unit),] 
         gdf=gdf.to_crs(crs0)
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
+        gdf=remove_invalid_geoms(gdf,crs0, 'gdf',city)
+        gdf=remove_holes(gdf,100,city)
         gdf['area']=gdf.area*1e-6
 
+        # load a shapefile consisting only of the larger sector geo units
         fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_DTIR.TAB' 
         gdf2=gpd.read_file(fp2)
+        gdf2=gdf2.to_crs(crs0)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['NUM_DTIR'].isin(geo_unit),] 
-        gdf2=gdf2.to_crs(crs0)
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
+        # clean up and add area
+        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2',city)
+        gdf2=remove_holes(gdf2,100,city)
         gdf2['area']=gdf2.area*1e-6
+
         # # rename geounits for constitency with all French cities
         gdf.rename(columns={'NUM_ZF_2013':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
@@ -250,22 +255,25 @@ def french_density_shapefiles(city,size_thresh):
         survey_yr=2016 
         fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_ZF.TAB'
         gdf=gpd.read_file(fp)
-        # restrict to D12 zones 01 to 04, these are sufficiently close to the center of Lyon, and combined make up an area of 841km2
-        geo_unit=gdf.loc[gdf['NUM_D2']=='01','NUM_DTIR'].sort_values().unique() # restricting to the Ville de Dijon and Grand Dijonhypercentre, which covers dtir 1-20.
+        # restrict  to the Ville de Dijon and Grand Dijon hypercentre, which covers dtir 1-20. These all had face to face interviews.
+        geo_unit=gdf.loc[gdf['NUM_D2']=='01','NUM_DTIR'].sort_values().unique() 
         gdf=gdf.loc[gdf['NUM_DTIR'].isin(geo_unit),] 
         gdf=gdf.to_crs(crs0)
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
+        gdf=remove_invalid_geoms(gdf,crs0, 'gdf', city)
+        gdf=remove_holes(gdf,100,city)
         gdf['area']=gdf.area*1e-6
 
+        # load a shapefile consisting only of the larger sector geo units
         fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_DTIR.TAB' 
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['NUM_DTIR'].isin(geo_unit),] 
         gdf2=gdf2.to_crs(crs0)
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
+        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
+        gdf2=remove_holes(gdf2,100,city)
         gdf2['area']=gdf2.area*1e-6
 
-        # # rename geounits for constitency with all French cities
+        # rename geounits for constitency with all French cities
         gdf.rename(columns={'NUM_ZF':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
@@ -283,19 +291,23 @@ def french_density_shapefiles(city,size_thresh):
         survey_yr=2015 
         fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_ZF.TAB'
         gdf=gpd.read_file(fp)
-        # restrict to D12 zones 01 to 04, these are sufficiently close to the center of Lyon, and combined make up an area of 841km2
-        geo_unit=gdf.loc[gdf['ST']<158,'ST'].sort_values().unique() # restricting to the Nimes hors hypercentre, which covers dtir 1-20.
+        # restrict to the métropole européenne de lille, which covers the French part of the eurumetripole, and includes also the cities of Tourcoing and Roubaix.
+        geo_unit=gdf.loc[gdf['ST']<158,'ST'].sort_values().unique() 
         gdf=gdf.loc[gdf['ST'].isin(geo_unit),] 
         gdf=gdf.to_crs(crs0)
-        gdf=remove_invalid_geoms(gdf,crs0, 'gdf')
+        # clean up and add area
+        gdf=remove_invalid_geoms(gdf,crs0, 'gdf', city)
+        gdf=remove_holes(gdf,100,city)
         gdf['area']=gdf.area*1e-6
 
+        # load a shapefile consisting only of the larger sector geo units
         fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_DTIR.TAB'
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['ST'].isin(geo_unit),] 
         gdf2=gdf2.to_crs(crs0)
-        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2')
+        gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
+        gdf2=remove_holes(gdf2,100,city)
         gdf2['area']=gdf2.area*1e-6
         # # rename geounits for constitency with all French cities
         gdf.rename(columns={'ZFIN2016F':'geo_unit_highres'},inplace=True)
@@ -311,6 +323,7 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Paris': 
+        # define boundary as Paris, plus departments Hauts-de-Seine, Seine-St Deint, and Val-de-Marne, plus selected communes in the departments of Essonne and Val-d'Oise
         deps=['75','92','93','94']
         ext_com=['91027','91326','91432','91479','91589','91687','95018']
         survey_yr=2010
@@ -373,7 +386,7 @@ def french_density_shapefiles(city,size_thresh):
         # there should not be replication of the iris codes, each iris code must be mapped to only one large sector, and each large sector will typically have >1 iris
         join3=gpd.sjoin(iris_gdf,gdf2,how='left',predicate='within').dropna()
         sec_iris=join3[['geo_unit','DCOMIRIS']].drop_duplicates()
-        if sec_iris['DCOMIRIS'].value_counts().max()>1:
+        if sec_iris['DCOMIRIS'].value_counts().max()>1: # if this happens the code will be broken, this can happen in Lyon if including point geometries
             print('iris code mapped to more than one sector in ' + city)
             sys.exit()
 
@@ -537,7 +550,7 @@ def french_density_shapefiles(city,size_thresh):
         # there should not be replication of the iris codes, each iris code must be mapped to only one large sector, and each large sector will typically have >1 iris
         join3=gpd.sjoin(iris_gdf,gdf2,how='left',predicate='within').dropna()
         sec_iris=join3[['geo_unit','DCOMIRIS']].drop_duplicates()
-        if sec_iris['DCOMIRIS'].value_counts().max()>1:
+        if sec_iris['DCOMIRIS'].value_counts().max()>1: # check why the code breaks here in Lyon
             print('iris code mapped to more than one sector in ' + city)
             sys.exit()
 
@@ -623,8 +636,8 @@ def french_density_shapefiles(city,size_thresh):
 
             if (city=='Lyon'):
                 point_code2=pd.concat([point_code2, pd.DataFrame({'geo_unit_highres':['247551'],'containing':['247003']})])
-            # remove the points from the gdfj gdf
-            gdfj_nopoints=gdfj.loc[~gdfj['geo_unit_highres'].isin(point_code2['geo_unit_highres']),]
+            # remove the points from the gdfj gdf, removing this for now
+            # gdfj_nopoints=gdfj.loc[~gdfj['geo_unit_highres'].isin(point_code2['geo_unit_highres']),]
 
         sub=gdfj.loc[gdfj['geo_unit'].isin(large),]
 
@@ -696,10 +709,11 @@ def french_density_shapefiles(city,size_thresh):
         # insert
         #gdf2_concat['geocode']=gdf2_concat['geocode'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
         gdf2_concat.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres.csv',index=False)
-        # save the shapefiles of the highres sector
-        if 'gdfj_nopoints' in locals():
-            gdf_hi=gdfj_nopoints.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
-        else: gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
+        # save the shapefiles of the highres sector, also editing this so we don't remove the points for now
+        # if 'gdfj_nopoints' in locals():
+        #     gdf_hi=gdfj_nopoints.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
+        # else: gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
+        gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
 
         gdf_hi.sort_values(by='geo_unit_highres',inplace=True)
         # insert
@@ -708,10 +722,10 @@ def french_density_shapefiles(city,size_thresh):
 
         # create and save the city boundary
         boundary=gpd.GeoDataFrame(geometry=[gdf_low['geometry'].unary_union], crs=crs0)
-        if city in ['Dijon','Lille']:
-            uuall=gdf_low.unary_union
-            polyb=Polygon(uuall.geoms[0].exterior)
-            boundary=gpd.GeoDataFrame(geometry=[polyb], crs=crs0)
+        # if city in ['Dijon','Lille']:
+        #     uuall=gdf_low.unary_union
+        #     polyb=Polygon(uuall.geoms[0].exterior)
+        #     boundary=gpd.GeoDataFrame(geometry=[polyb], crs=crs0)
         boundary['crs']=crs0
         boundary.to_csv('../outputs/city_boundaries/' + city + '.csv',index=False)
 
