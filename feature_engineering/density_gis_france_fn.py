@@ -1,16 +1,15 @@
 # script to calculat population density by spatial units in French cities
-# last update Peter Berrill Mar 3 2023
+# last update Peter Berrill June 6 2023
 
 import pandas as pd
 import geopandas as gpd
 import numpy as np
 from pyproj import CRS
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from matplotlib_scalebar.scalebar import ScaleBar
 import pickle
-from shapely.geometry import Polygon, MultiPolygon
-from shapely.validation import make_valid
-from citymob import remove_holes, remove_invalid_geoms
+from citymob import remove_holes, remove_invalid_geoms, remove_slivers
 import sys
 
 # inputs:
@@ -25,23 +24,18 @@ import sys
 # figures showing spatial units for each resolution
 # pickled dictionaries to translate the geocodes from the survey to the mixed-res ids needed to merge with the geospatial data
 
-# size_thresh=10  # km2 if this threshold is smaller than 12.91 km2, then need to insert an exception for Lyon geometry 247551 within faulty geometry 247003
-# in pg 10 of the 'ATLAS' pdf file for Clermont, we see that there are 32 zones where face to face interviews were done in the region of Greater Clermont. 24 further sectors in the broader had telephone interviews.
-# Originaly we restricted analysis to the 32 areas of greater Clermont, but this made quite a large total area (1,350 km2, 1.5x larger than the area we use for Paris or Berlin), 
-# so we instead restrict to the first 19 sectors which includes Clermont vill and Hors-Clermont, see maps on pg 12-13 of ATLAS.
-
 def french_density_shapefiles(city,size_thresh):
     crs0=3035
     #size_thresh=10
     if city=='Clermont':
         dep='63'
         survey_yr=2012
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0924_Clermont.csv/Doc/SIG/EDGT Clermont2012_DTIR.mid'
+        fp='../../MSCA_data/FranceRQ/lil-0924_Clermont.csv/Doc/SIG/EDGT Clermont2012_DTIR.mid'
         gdf=gpd.read_file(fp)
         gdf.to_crs(crs0,inplace=True)
         geo_unit=gdf['NUM_DTIR'].sort_values().unique()
-        # limit to DTIRs 101:119, this corresponds to the PTU SMTC (Périmètre des Transports Urbains, Syndicat Mixte des Transports en Commun),
-        # or 21 communes of  Clermont Communauté (replaced by Clermont Auvergne Métropole in 2018, but survey is from 2012)
+        # limit to DTIRs 101:119, this corresponds to the PTU SMTC (Périmètre des Transports Urbains, Syndicat Mixte des Transports en Commun), including Clermont ville and Hors-Clermont, see maps on pg 8 of http://www.authezat.fr/wp-content/uploads/2013/02/2013_01_28_dossier_presse_edgt_resultats.pdf
+        # equivalent to 21 communes of  Clermont Communauté (replaced by Clermont Auvergne Métropole in 2018, but survey is from 2012)
         geo_unit=geo_unit[0:19]
         gdf=gdf.loc[gdf['NUM_DTIR'].isin(geo_unit),] 
         # clean up (remove holes and make invalid geoms valid)
@@ -63,7 +57,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'DTIR':'geo_unit'},inplace=True)
         # load in IRIS shapefiles for Clermont Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -74,7 +68,7 @@ def french_density_shapefiles(city,size_thresh):
     if city=='Montpellier':
         dep='34'
         survey_yr=2014
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_Zones fines.mid'
+        fp='../../MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_Zones fines.mid'
         gdf=gpd.read_file(fp)
         # boundary of gdf is set below for Montpellier
         gdf=gdf.to_crs(crs0)
@@ -83,7 +77,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_DTIR.mid'
+        fp2='../../MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_DTIR.mid'
         gdf2=gpd.read_file(fp2)
         geo_unit=gdf2.loc[gdf2['D5_D10']=='01', 'DTIR'].sort_values().unique()
         # restrict surveys to the 'Montpellier Agglomération', with face to face interviews
@@ -98,7 +92,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'NUM_SECTEUR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'DTIR':'geo_unit'},inplace=True)
         # load in IRIS shapefiles for Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -109,11 +103,12 @@ def french_density_shapefiles(city,size_thresh):
     if city=='Lyon': # think i use the .tab file https://stackoverflow.com/questions/22218069/how-to-load-mapinfo-file-into-geopandas for mapinfo gis file
         dep='69'
         survey_yr=2015
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_ZF_GT.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_ZF_GT.TAB'
         gdf=gpd.read_file(fp)
         # restrict to D12 zones 01 to 04 (DTIR<258), these are sufficiently close to the center of Lyon, and combined make up an area of 841km2 (quite largr).
         # It corresponds to all of Métropole de Lyon plus some additional nearby regions: Sepal, + a little bit of Ouest Rhône
-        geo_unit=gdf.loc[gdf['DTIR'].astype('int')<258,'DTIR'].sort_values().unique()
+        #geo_unit=gdf.loc[gdf['DTIR'].astype('int')<258,'DTIR'].sort_values().unique()
+        geo_unit=gdf.loc[gdf['D10'].isin(['D12-01','D12-02']),'DTIR'].sort_values().unique()
         gdf=gdf.loc[gdf['DTIR'].isin(geo_unit),] 
         gdf=gdf.to_crs(crs0)
         gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
@@ -121,7 +116,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_DTIR.TAB'
+        fp2='../../MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_DTIR.TAB'
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['DTIR'].isin(geo_unit),] 
@@ -134,7 +129,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'DTIR':'geo_unit'},inplace=True)
         # load in IRIS shapefiles for Lyon Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -168,7 +163,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'SECTEUR_EMD2013':'geo_unit'},inplace=True)
         gdf2.rename(columns={'SECTEUR_EMD2013':'geo_unit'},inplace=True)
         # # load in IRIS shapefiles for Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -179,7 +174,7 @@ def french_density_shapefiles(city,size_thresh):
     if city=='Nantes': 
         dep='44'
         survey_yr=2015
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_ZF.TAB'
         gdf=gpd.read_file(fp)
 
         # restrict to Nantes Metropole
@@ -191,7 +186,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_DTIR.TAB'
+        fp2='../../MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_DTIR.TAB'
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['NUM_DTIR'].isin(geo_unit),] 
@@ -205,7 +200,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         # load in IRIS shapefiles for Lyon Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -216,7 +211,7 @@ def french_density_shapefiles(city,size_thresh):
     if city=='Nimes':
         dep='30'
         survey_yr=2015
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_ZF.TAB'
         gdf=gpd.read_file(fp)
         # restrict to Nimes city, which covers dtir 1-20. This is small (161km2). Could optionally extend to Communauté d'agglomération Nîmes Métropole, but that would leave us with a very low density (326/km2) and it is questionable whether that area is 'city'
         geo_unit=gdf.loc[gdf['NOM_DTIR']=='NIMES','NUM_DTIR'].sort_values().unique()  
@@ -227,7 +222,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_DTIR.TAB' 
+        fp2='../../MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_DTIR.TAB' 
         gdf2=gpd.read_file(fp2)
         gdf2=gdf2.to_crs(crs0)
         # restrict to selected zones
@@ -242,7 +237,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         # load in IRIS shapefiles for Lyon Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -253,7 +248,7 @@ def french_density_shapefiles(city,size_thresh):
     if city=='Dijon':
         dep='21'
         survey_yr=2016 
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_ZF.TAB'
         gdf=gpd.read_file(fp)
         # restrict  to the Ville de Dijon and Grand Dijon hypercentre, which covers dtir 1-20. These all had face to face interviews.
         geo_unit=gdf.loc[gdf['NUM_D2']=='01','NUM_DTIR'].sort_values().unique() 
@@ -264,7 +259,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_DTIR.TAB' 
+        fp2='../../MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_DTIR.TAB' 
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['NUM_DTIR'].isin(geo_unit),] 
@@ -278,7 +273,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         gdf2.rename(columns={'NUM_DTIR':'geo_unit'},inplace=True)
         # load in IRIS shapefiles 
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -289,7 +284,7 @@ def french_density_shapefiles(city,size_thresh):
     if city=='Lille':
         dep='59'
         survey_yr=2015 
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_ZF.TAB'
         gdf=gpd.read_file(fp)
         # restrict to the métropole européenne de lille, which covers the French part of the eurumetripole, and includes also the cities of Tourcoing and Roubaix.
         geo_unit=gdf.loc[gdf['ST']<158,'ST'].sort_values().unique() 
@@ -301,7 +296,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf['area']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_DTIR.TAB'
+        fp2='../../MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_DTIR.TAB'
         gdf2=gpd.read_file(fp2)
         # restrict to selected zones
         gdf2=gdf2.loc[gdf2['ST'].isin(geo_unit),] 
@@ -314,7 +309,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf.rename(columns={'ST':'geo_unit'},inplace=True)
         gdf2.rename(columns={'ST':'geo_unit'},inplace=True)
         # load in IRIS shapefiles for Lyon Department
-        fp='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
+        fp='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + dep + '-2014/CONTOURS-IRIS_D0' + dep + '.shp'
         iris_gdf=gpd.read_file(fp)
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
@@ -322,12 +317,12 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
         iris_gdf.set_geometry('center',inplace=True)
 
-    if city=='Paris': 
+    if city=='Paris': # first do for Paris 
         # define boundary as Paris, plus departments Hauts-de-Seine, Seine-St Deint, and Val-de-Marne, plus selected communes in the departments of Essonne and Val-d'Oise
         deps=['75','92','93','94']
         ext_com=['91027','91326','91432','91479','91589','91687','95018']
         survey_yr=2010
-        fp='C:/Users/peter/Documents/projects/city_mobility/shapefiles/code-postal-code-insee-2015/code-postal-code-insee-2015.shp'
+        fp='../../MSCA_data/France_Shapefiles/code-postal-code-insee-2015/code-postal-code-insee-2015.shp'
         gdf0=gpd.read_file(fp)
         gdf0=gdf0.loc[:,('insee_com','nom_com','superficie','population','code_dept','nom_dept','code_reg','nom_reg','nom_de_la_c','geometry')].drop_duplicates()
         ext_com=['91027','91326','91432','91479','91589','91687','95018']
@@ -337,18 +332,16 @@ def french_density_shapefiles(city,size_thresh):
         gdf2['area']=gdf2['geometry'].area*1e-6
         df2=pd.DataFrame(gdf2.drop(columns='geometry'))
 
-        gdf_idf=gdf0.loc[gdf0['code_dept'].isin(['75','77','78','91','92','93','94','95']), ]
+        gdf_idf=gdf0.loc[gdf0['code_dept'].isin(['75','77','78','91','92','93','94','95']), ] # we never use this
         gdf_idf.to_crs(crs0,inplace=True)
         del gdf0
 
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0883_IleDeFrance.csv/Doc/Carreaux_shape_mifmid/carr100m.shp'
+        fp='../../MSCA_data/FranceRQ/lil-0883_IleDeFrance.csv/Doc/Carreaux_shape_mifmid/carr100m.shp'
         gdf=gpd.read_file(fp)
         # assumed crs of the grid
         gdf.set_crs('epsg:27561',inplace=True)
         gdf.to_crs(crs0,inplace=True)
         gdf['area']=gdf.area
-        # boundary_idf_grid=gpd.GeoDataFrame(geometry=[gdf['geometry'].unary_union],crs=crs0)
-        # boundary=gpd.GeoDataFrame(geometry=[gdf2['geometry'].unary_union],crs=crs0)
 
         # restrict higher res grid gdf to selected communes, i.e. those in Greater Paris
         gdf.rename(columns={'area':'area_cell'},inplace=True)
@@ -361,17 +354,17 @@ def french_density_shapefiles(city,size_thresh):
         gdf2.rename(columns={'insee_com':'geo_unit'},inplace=True)
 
         # load in IRIS shapefiles for each Department, then combine
-        fp0='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[0] + '-2014/CONTOURS-IRIS_D0' + deps[0] + '.shp'
+        fp0='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[0] + '-2014/CONTOURS-IRIS_D0' + deps[0] + '.shp'
         iris_gdf0=gpd.read_file(fp0)
-        fp1='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[1] + '-2014/CONTOURS-IRIS_D0' + deps[1] + '.shp'
+        fp1='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[1] + '-2014/CONTOURS-IRIS_D0' + deps[1] + '.shp'
         iris_gdf1=gpd.read_file(fp1)
-        fp2='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[2] + '-2014/CONTOURS-IRIS_D0' + deps[2] + '.shp'
+        fp2='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[2] + '-2014/CONTOURS-IRIS_D0' + deps[2] + '.shp'
         iris_gdf2=gpd.read_file(fp2)
-        fp3='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[3] + '-2014/CONTOURS-IRIS_D0' + deps[3] + '.shp'
+        fp3='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + deps[3] + '-2014/CONTOURS-IRIS_D0' + deps[3] + '.shp'
         iris_gdf3=gpd.read_file(fp3)
-        fp4='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + '91' + '-2014/CONTOURS-IRIS_D0' + '91' + '.shp'
+        fp4='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + '91' + '-2014/CONTOURS-IRIS_D0' + '91' + '.shp'
         iris_gdf4=gpd.read_file(fp4)
-        fp5='../../../projects/city_mobility/shapefiles/France other/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + '95' + '-2014/CONTOURS-IRIS_D0' + '95' + '.shp'
+        fp5='../../MSCA_data/France_Shapefiles/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS_2-0__SHP_LAMB93_FXX_2014-01-01/CONTOURS-IRIS/1_DONNEES_LIVRAISON_2014/CONTOURS-IRIS_2-0_SHP_LAMB93_D0' + '95' + '-2014/CONTOURS-IRIS_D0' + '95' + '.shp'
         iris_gdf5=gpd.read_file(fp5)
 
         iris_gdf=gpd.GeoDataFrame(pd.concat([iris_gdf0,iris_gdf1,iris_gdf2,iris_gdf3,iris_gdf4,iris_gdf5]),crs=iris_gdf0.crs)
@@ -461,8 +454,13 @@ def french_density_shapefiles(city,size_thresh):
         sub=gdfj.loc[gdfj['geo_unit'].isin(large),]
 
         # reformat sub to be concatenated with gdf2
-        sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2012']]
-        sub.rename(columns={'geo_unit_highres':'geocode','Density_2012':'Density'},inplace=True)
+        if survey_yr in [2010,2011,2012,2013,2014]:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2012','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2012':'Density'},inplace=True)
+
+        if survey_yr in [2015,2016,2017,2018]:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2017','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2017':'Density'},inplace=True)
         # sub['area']=sub['area_cell']*1e-6
         sub=sub.loc[:,('geocode','geometry','area','Density')]
 
@@ -519,6 +517,7 @@ def french_density_shapefiles(city,size_thresh):
 
         # create and save the city boundary
         boundary=gpd.GeoDataFrame(geometry=[gdf_low['geometry'].unary_union], crs=crs0)
+
         boundary['crs']=crs0
         boundary.to_csv('../outputs/city_boundaries/' + city + '.csv',index=False)
 
@@ -636,55 +635,93 @@ def french_density_shapefiles(city,size_thresh):
 
             if (city=='Lyon'):
                 point_code2=pd.concat([point_code2, pd.DataFrame({'geo_unit_highres':['247551'],'containing':['247003']})])
-            # remove the points from the gdfj gdf, removing this for now
+            # remove the points from the gdfj gdf, not running this for now, as urban form metrics can be calculated later as a buffer around selected points, as necessary, and as is done in the lines ummediately above
             # gdfj_nopoints=gdfj.loc[~gdfj['geo_unit_highres'].isin(point_code2['geo_unit_highres']),]
 
         sub=gdfj.loc[gdfj['geo_unit'].isin(large),]
 
         # reformat sub to be concatenated with gdf2
-        sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2017']]
-        sub.rename(columns={'geo_unit_highres':'geocode','Density_2017':'Density'},inplace=True)
-        #sub['geocode']=sub['geocode'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
+        if survey_yr in [2010,2011,2012,2013,2014]:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2012','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2012':'Density'},inplace=True)
 
+        if survey_yr in [2015,2016,2017,2018]:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2017','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2017':'Density'},inplace=True)
+
+        iris_dict=pd.DataFrame(sub.loc[:,['geocode','DCOMIRIS']])
+        iris_first=iris_dict.groupby('DCOMIRIS')['geocode'].first().reset_index()
+        iris_first.rename(columns={'geocode':'geocode_first'},inplace=True)
+        iris_dict=iris_dict.merge(iris_first)
+
+        subiris=sub.dissolve(by='DCOMIRIS')
+        subiris.reset_index(drop=False,inplace=True)
+        # recalculate area. densities are correctly calculated using the 'first' aggfunc in dissolve
+        subiris['area']=subiris.area*1e-6
+        subiris=subiris.loc[:,('geocode','geometry','area','Density')]
+        
         # reformate gdf2 to be concatenated with sub
         gdf2_concat=gdf2.loc[~gdf2['geo_unit'].isin(large),('geo_unit','geometry','area','Density')]
         gdf2_concat.rename(columns={'geo_unit':'geocode'},inplace=True)
         gdf2_concat['geocode']=gdf2_concat.loc[:,'geocode'].astype('str')
 
-        print('area distribution of retained large geo-units, ' + city)
-        print(gdf2_concat['area'].describe())
-        print('area distribution of smaller geo-units, ' + city)
-        print(sub['area'].describe())
-        # make the concatenated gdf
-        gdf2_concat=gpd.GeoDataFrame(pd.concat([gdf2_concat,sub], ignore_index=True))
+        gdf2_concat['source']='large_units'
+        subiris['source']='small_units_agg'
+        sub['source']='small_units'
+
+        gdf_mixed=gpd.GeoDataFrame(pd.concat([gdf2_concat,sub.loc[:,('geocode','geometry','area','Density','source')]], ignore_index=True))
+        gdf_mixed.sort_values(by='geocode',inplace=True)
+
+        gdf3_concat=gpd.GeoDataFrame(pd.concat([gdf2_concat,subiris.loc[:,('geocode','geometry','area','Density','source')]], ignore_index=True))
+        gdf3_concat=remove_holes(gdf3_concat,100,city)
+        gdf3_concat.sort_values(by='geocode',inplace=True)
 
         # make the dictionary to translate the geocodes from the survey to the ones needed to merge with the geospatial data
         long=pd.DataFrame(gdf.loc[:,('geo_unit_highres','geo_unit')])
-        # # insert to remove . or spaces from the 'geo_unit_highres'
-        #long['geo_unit_highres']=long['geo_unit_highres'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
         long.loc[long['geo_unit_highres'].isin(sub['geocode']),'geo_unit']=long.loc[long['geo_unit_highres'].isin(sub['geocode']),'geo_unit_highres']
 
-        geo_dict=long.set_index('geo_unit_highres').T.to_dict('records')[0]
+        iris_dict2=iris_dict.drop(columns='DCOMIRIS').set_index('geocode').T.to_dict('records')[0]
 
-        if 'point_code2' in locals(): # only if we had to replace points with their containing geometries
-            # create the point_code dictionary
-            #point_code2['geo_unit_highres']=point_code2['geo_unit_highres'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
-            pc_dict2=point_code2.set_index('geo_unit_highres').T.to_dict('records')[0]
+        long2=long.copy()
+        long2['geo_unit_highres2']=long2['geo_unit_highres'].astype('string').str.zfill(6).map(iris_dict2)
+        long2['geo_unit_highres2']=long2['geo_unit_highres2'].fillna(long2['geo_unit'])
+        long2.drop(columns='geo_unit',inplace=True)
+
+        geo_dict=long2.set_index('geo_unit_highres').T.to_dict('records')[0]
+        long2['geo_unit_highres2']=long2['geo_unit_highres2'].astype('string')
+
+        long2.sort_values(by='geo_unit_highres2',inplace=True)
+        
+        # check that we have the right geocodes in the dict
+        if (all(long2['geo_unit_highres2'].drop_duplicates().values==gdf3_concat['geocode'].values)):
+            print('dictionary is correct')
+
+        # if 'point_code2' in locals(): # only if we had to replace points with their containing geometries
+        #     # create the point_code dictionary
+        #     #point_code2['geo_unit_highres']=point_code2['geo_unit_highres'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
+        #     pc_dict2=point_code2.set_index('geo_unit_highres').T.to_dict('records')[0]
             
-            long2=long.copy()
-            long2.loc[long2['geo_unit_highres'].isin(point_code2['geo_unit_highres']),'geo_unit']=long2.loc[long2['geo_unit_highres'].isin(point_code2['geo_unit_highres']),'geo_unit_highres'].map(pc_dict2).values
-            geo_dict_all=long2.set_index('geo_unit_highres').T.to_dict('records')[0]
-            # save dictionary
-            with open('../dictionaries/' + city + '_allpoly_geocode.pkl', 'wb') as f:
-                pickle.dump(geo_dict_all, f)
+        #     long2=long.copy()
+        #     long2.loc[long2['geo_unit_highres'].isin(point_code2['geo_unit_highres']),'geo_unit']=long2.loc[long2['geo_unit_highres'].isin(point_code2['geo_unit_highres']),'geo_unit_highres'].map(pc_dict2).values
+        #     geo_dict_all=long2.set_index('geo_unit_highres').T.to_dict('records')[0]
+        #     # save dictionary
+        #     with open('../dictionaries/' + city + '_allpoly_geocode.pkl', 'wb') as f:
+        #         pickle.dump(geo_dict_all, f)
 
         # save a figure of the mixed resolution geounits
+        cmap = mpl.colors.ListedColormap(['#1f77b4', 'red'])
         fig, ax = plt.subplots(figsize=(10,10))
-        gdf2.plot(ax=ax,edgecolor='black')
+        gdf3_concat.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
         plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
-        ax.add_artist(ScaleBar(1))
-        sub.plot(ax=ax, color='red',alpha=0.8,edgecolor='black')   
+        ax.add_artist(ScaleBar(1)) 
+        plt.savefig('../outputs/density_geounits/'+ city + '_mixed_new.png',facecolor='w')
+
+        fig, ax = plt.subplots(figsize=(10,10))
+        gdf_mixed.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
+        plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
+        ax.add_artist(ScaleBar(1)) 
         plt.savefig('../outputs/density_geounits/'+ city + '_mixed.png',facecolor='w')
+
         # save a figure of the high resolution geounits
         fig, ax = plt.subplots(figsize=(10,10))
         gdf.plot(ax=ax,edgecolor='black',color='red')
@@ -705,28 +742,20 @@ def french_density_shapefiles(city,size_thresh):
         gdf_low.sort_values(by='geo_unit',inplace=True)
         gdf_low.to_csv('../outputs/density_geounits/' + city + '_pop_density_lowres.csv',index=False)
         #  save the shapefiles of population by mix high-res and aggregated sector
-        gdf2_concat.sort_values(by='geocode',inplace=True)
-        # insert
-        #gdf2_concat['geocode']=gdf2_concat['geocode'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
-        gdf2_concat.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres.csv',index=False)
-        # save the shapefiles of the highres sector, also editing this so we don't remove the points for now
-        # if 'gdfj_nopoints' in locals():
-        #     gdf_hi=gdfj_nopoints.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
-        # else: gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
         gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
+        
+        # new mixres density file
+        gdf3_concat.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres_new.csv',index=False)
 
         gdf_hi.sort_values(by='geo_unit_highres',inplace=True)
-        # insert
-        #gdf_hi['geo_unit_highres']=gdf_hi['geo_unit_highres'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
         gdf_hi.to_csv('../outputs/density_geounits/' + city + '_pop_density_highres.csv',index=False)
 
         # create and save the city boundary
         boundary=gpd.GeoDataFrame(geometry=[gdf_low['geometry'].unary_union], crs=crs0)
-        # if city in ['Dijon','Lille']:
-        #     uuall=gdf_low.unary_union
-        #     polyb=Polygon(uuall.geoms[0].exterior)
-        #     boundary=gpd.GeoDataFrame(geometry=[polyb], crs=crs0)
+        if city != 'Lyon':
+            boundary=remove_slivers(boundary)
         boundary['crs']=crs0
+        print('saving boundary for ' + city)
         boundary.to_csv('../outputs/city_boundaries/' + city + '.csv',index=False)
 
         # save dictionary
@@ -735,14 +764,17 @@ def french_density_shapefiles(city,size_thresh):
 
         # create and save some summary stats
 
-        area_mixed=pd.DataFrame(gdf2_concat['area'].describe()).reset_index()
+        area_mixed=pd.DataFrame(gdf_mixed['area'].describe()).reset_index()
+        area_mixed_new=pd.DataFrame(gdf3_concat['area'].describe()).reset_index()
         area_hires=pd.DataFrame(gdf_hi['area'].describe()).reset_index()
         area_lores=pd.DataFrame(gdf_low['area'].describe()).reset_index()
         sums=pd.DataFrame(gdf_low[['area','Population']].sum()).reset_index()
+        sums['Density']=sums[0][1]/sums[0][0]
         writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
 
         # include all the dfs/sheets here, and then save
         area_mixed.to_excel(writer, sheet_name='area_mixres',index=False)
+        area_mixed_new.to_excel(writer, sheet_name='area_mixres_new',index=False)
         area_hires.to_excel(writer, sheet_name='area_hires',index=False)
         area_lores.to_excel(writer, sheet_name='area_lores',index=False)
         sums.to_excel(writer, sheet_name='area_pop_sum',index=False)
@@ -752,6 +784,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-
-cities=pd.Series(['Clermont','Toulouse','Montpellier','Lyon','Nantes','Nimes','Lille','Dijon','Paris'])
-cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
+cities=pd.Series(['Clermont','Toulouse','Lyon','Nantes','Nimes','Lille','Dijon','Montpellier','Paris'])
+cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid
