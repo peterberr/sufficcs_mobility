@@ -1,3 +1,7 @@
+# script to calculate location of subcenters, and distances from postcodes to center and subcenters
+# last update Peter Berrill June 6 2023
+
+# load required libraries
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -14,8 +18,9 @@ from matplotlib_scalebar.scalebar import ScaleBar
 from citymob import import_csv_w_wkt_to_gdf
 
 crs0=3035
+
 # load in the 1km grid from Inspire for Germany, and use this grid to estimate the subcenters.
-grid=gpd.read_file('C:/Users/peter/Documents/general_GIS_files/Germany/Inspire_1km_grid/DE_Gitter_ETRS89_LAEA_1km.shp') 
+grid=gpd.read_file('../../../general_GIS_files/Germany/Inspire_1km_grid/DE_Gitter_ETRS89_LAEA_1km.shp') 
 # ensure grid is in the common crs
 grid=grid.to_crs(crs0)
 # calculate grid cell areas
@@ -23,7 +28,7 @@ grid['area_cell']=grid['geometry'].area
 grid['grid_id'] = grid.index
 
 # read in German postcotde
-fp = "C:/Users/peter/Documents/projects/city_mobility/shapefiles/plz-5stellig.shp/plz-5stellig.shp"
+fp = "../shapefiles/plz-5stellig.shp/plz-5stellig.shp"
 plz = gpd.read_file(fp)
 plz=plz.to_crs(crs0)
 
@@ -33,12 +38,12 @@ plz_cent['geometry']=plz_cent.centroid
 del plz
 
 # load the dictionary of city postcodes, and select only postcodes within the selected city
-city_plz_fp='C:/Users/peter/Documents/projects/city_mobility/dictionaries/city_postcode_DE.pkl'
+city_plz_fp='../dictionaries/city_postcode_DE.pkl'
 a_file = open(city_plz_fp, "rb")
 city_plz_dict = pickle.load(a_file)
 
 # read in shapefile of user-defined city centers
-centers=import_csv_w_wkt_to_gdf('../shapefiles/citycenters/centers.csv',crs=4326)
+centers=import_csv_w_wkt_to_gdf('../source/citycenters/centers.csv',crs=4326)
 centers.to_crs(crs0,inplace=True)
 def subcenters(city):
     print(city)
@@ -51,7 +56,7 @@ def subcenters(city):
     buildings_gdf=gpd.read_file(fp)
 
     # read in file of city boundaries
-    fp='../shapefiles/city_boundaries/' + city + '.csv'  
+    fp='../outputs/city_boundaries/' + city + '.csv'  
     gdf_boundary = import_csv_w_wkt_to_gdf(fp,crs=crs0,geometry_col='geometry')
 
     # calculate the area of the buidlings from the database
@@ -94,7 +99,6 @@ def subcenters(city):
     center_cell=gpd.sjoin(result_gdf, cp0)
     # define id and index of center
     center_id=center_cell['grid_id'].values[0]
-    center_ix=center_cell['grid_id'].index[0]
 
     result_gdf['dist2center']=result_gdf.geometry.apply(lambda g: result_gdf.loc[result_gdf['grid_id']==center_id,'centerpoint'].distance(g))
     result_gdf['DistGroup']='uncategorized'
@@ -288,7 +292,7 @@ def subcenters(city):
     # create dataframe containing the weighted centers, volume, and then calculate volume density for each postcode
     plz_wgt_cent=gpd.GeoDataFrame(data,crs=crs0,columns =['plz','geometry'])
     plz_wgt_cent.rename(columns={'geometry':'wgt_center'},inplace=True)
-    plz_poly2=plz_poly.merge(plz_wgt_cent).copy() #https://stackoverflow.com/questions/10851906/python-3-unboundlocalerror-local-variable-referenced-before-assignment
+    plz_poly2=plz_poly.merge(plz_wgt_cent).copy() 
     plz_poly2=plz_poly2.merge(plz_vol)
     plz_poly2['area']=plz_poly2.area*1e-6 # area of postcode in km2
 
@@ -327,16 +331,17 @@ def subcenters(city):
     d2c=gdf_1.geometry.apply(lambda g: 0.001*gdf_2.distance(g))
     d2c.columns=['Distance2Center']
     # # merge the postcode into the df of distance to center by index
-    d2c=d2c.merge(plz_wgt_cent['plz'],left_index=True,right_index=True)
-    d2c=d2c.loc[:,('plz','Distance2Center')].copy()
+    d2c=d2c.merge(plz_wgt_cent,left_index=True,right_index=True)
+    d2c=d2c.loc[:,('plz','Distance2Center','wgt_center')].copy()
 
     # merge the distance to center and distance to subcenter by postcode
     d2=d2sc.merge(d2c)
     # merge the building volume density into the distance to center dataframe for saving
     d2=d2.merge(plz_poly2.loc[:,('plz','build_vol_density')])
-    d2
+
     # save distance to (sub)centers, and built up volume per postcode as csv
-    d2['plz']=d2['plz'].astype('str')
+    d2.rename(columns={'plz':'geocode'},inplace=True)
+    d2['geocode']=d2['geocode'].astype(str)
     fp = '../outputs/CenterSubcenter/'+city+'_dist.csv'
     d2.to_csv(fp,index=False)
     # convert to gdf by combining with the postcode polygons
