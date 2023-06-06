@@ -9,6 +9,7 @@ from pyproj import CRS
 import matplotlib.pyplot as plt
 from matplotlib_scalebar.scalebar import ScaleBar
 import pickle
+from citymob import import_csv_w_wkt_to_gdf
 
 # inputs:
 # Austrian municipality (gemeinden) shapefiles and population counts
@@ -19,20 +20,6 @@ import pickle
 # population density by municipality
 # summary stats on population, area, and area distribution of gemeinden (or other spatial units)
 # pickled dictionary of Wien municipalities
-
-def import_csv_w_wkt_to_gdf(path,crs,geometry_col='geometry'):
-	'''
-	Import a csv file with WKT geometry column into a GeoDataFrame
-
-    Last modified: 12/09/2020. By: Nikola
-
-    '''
-
-	df = pd.read_csv(path,encoding='latin-1')
-	gdf = gpd.GeoDataFrame(df, 
-						geometry=df[geometry_col].apply(wkt.loads),
-						crs=crs)
-	return(gdf)
 
 crs0=3035
 
