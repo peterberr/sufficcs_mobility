@@ -71,9 +71,6 @@ wien_la['state']='LowerAustria'
 # create a new Wien + extents gdf which includes those nearby municipalities in lower Austria
 wien_ext=pd.concat([wien,wien_la.loc[:,('ID', 'NAME', 'geometry', 'ID_int', 'area', 'state')]],ignore_index=True)
 
-# fig, ax = plt.subplots(figsize=(10,10))
-# wien_ext.plot(ax=ax,column='state',legend=True)
-
 print('Area: ', wien_ext['area'].sum())
 
 # read in Austria population by municipality, source: https://www.data.gv.at/katalog/dataset/1dd64998-6836-3871-ac89-443f742bdc68
@@ -148,7 +145,7 @@ writer.close()
 # save dictionary of Wien municipalities
 city_plz={}
 city_plz.update( {'Wien' : wien_ext['geo_unit'].values})
-with open('C:/Users/peter/Documents/projects/city_mobility/dictionaries/city_postcode_AT.pkl', 'wb') as f:
+with open('../dictionaries/city_postcode_AT.pkl', 'wb') as f:
     pickle.dump(city_plz, f)
 
 print('Finished extracting density and shapefiles for ' + city)
