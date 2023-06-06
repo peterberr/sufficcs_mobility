@@ -669,12 +669,9 @@ def french_density_shapefiles(city,size_thresh):
         subiris['source']='small_units_agg'
         sub['source']='small_units'
 
-        gdf_mixed=gpd.GeoDataFrame(pd.concat([gdf2_concat,sub.loc[:,('geocode','geometry','area','Density','source')]], ignore_index=True))
+        gdf_mixed=gpd.GeoDataFrame(pd.concat([gdf2_concat,subiris.loc[:,('geocode','geometry','area','Density','source')]], ignore_index=True))
+        gdf_mixed=remove_holes(gdf_mixed,100,city)
         gdf_mixed.sort_values(by='geocode',inplace=True)
-
-        gdf3_concat=gpd.GeoDataFrame(pd.concat([gdf2_concat,subiris.loc[:,('geocode','geometry','area','Density','source')]], ignore_index=True))
-        gdf3_concat=remove_holes(gdf3_concat,100,city)
-        gdf3_concat.sort_values(by='geocode',inplace=True)
 
         # make the dictionary to translate the geocodes from the survey to the ones needed to merge with the geospatial data
         long=pd.DataFrame(gdf.loc[:,('geo_unit_highres','geo_unit')])
@@ -693,7 +690,7 @@ def french_density_shapefiles(city,size_thresh):
         long2.sort_values(by='geo_unit_highres2',inplace=True)
         
         # check that we have the right geocodes in the dict
-        if (all(long2['geo_unit_highres2'].drop_duplicates().values==gdf3_concat['geocode'].values)):
+        if (all(long2['geo_unit_highres2'].drop_duplicates().values==gdf_mixed['geocode'].values)):
             print('dictionary is correct')
 
         # if 'point_code2' in locals(): # only if we had to replace points with their containing geometries
@@ -710,12 +707,6 @@ def french_density_shapefiles(city,size_thresh):
 
         # save a figure of the mixed resolution geounits
         cmap = mpl.colors.ListedColormap(['#1f77b4', 'red'])
-        fig, ax = plt.subplots(figsize=(10,10))
-        gdf3_concat.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
-        plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
-        ax.add_artist(ScaleBar(1)) 
-        plt.savefig('../outputs/density_geounits/'+ city + '_mixed_new.png',facecolor='w')
-
         fig, ax = plt.subplots(figsize=(10,10))
         gdf_mixed.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
         plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
@@ -745,7 +736,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
         
         # new mixres density file
-        gdf3_concat.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres_new.csv',index=False)
+        gdf_mixed.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres.csv',index=False)
 
         gdf_hi.sort_values(by='geo_unit_highres',inplace=True)
         gdf_hi.to_csv('../outputs/density_geounits/' + city + '_pop_density_highres.csv',index=False)
@@ -765,7 +756,6 @@ def french_density_shapefiles(city,size_thresh):
         # create and save some summary stats
 
         area_mixed=pd.DataFrame(gdf_mixed['area'].describe()).reset_index()
-        area_mixed_new=pd.DataFrame(gdf3_concat['area'].describe()).reset_index()
         area_hires=pd.DataFrame(gdf_hi['area'].describe()).reset_index()
         area_lores=pd.DataFrame(gdf_low['area'].describe()).reset_index()
         sums=pd.DataFrame(gdf_low[['area','Population']].sum()).reset_index()
@@ -773,8 +763,7 @@ def french_density_shapefiles(city,size_thresh):
         writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
 
         # include all the dfs/sheets here, and then save
-        area_mixed.to_excel(writer, sheet_name='area_mixres',index=False)
-        area_mixed_new.to_excel(writer, sheet_name='area_mixres_new',index=False)
+        area_mixed.to_excel(writer, sheet_name='area_mixre',index=False)
         area_hires.to_excel(writer, sheet_name='area_hires',index=False)
         area_lores.to_excel(writer, sheet_name='area_lores',index=False)
         sums.to_excel(writer, sheet_name='area_pop_sum',index=False)
@@ -784,5 +773,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Clermont','Toulouse','Lyon','Nantes','Nimes','Lille','Dijon','Montpellier','Paris'])
+cities=pd.Series(['Clermont','Toulouse','Lyon','Nantes','Nimes','Lille','Dijon','Montpellier'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid
