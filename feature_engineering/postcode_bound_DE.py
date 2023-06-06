@@ -19,7 +19,7 @@ crs0=3035
 cities=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam']
 
 # get the city boundaries from shapefile of German districts
-dis=gpd.read_file('C:/Users/peter/Documents/projects/city_mobility/shapefiles/VG250_1Jan2011_WGS84/VG250_Kreise.shp') # source https://www.zensus2011.de/EN/Media/Background_material/Background_material_node.html
+dis=gpd.read_file('../shapefiles/VG250_1Jan2011_WGS84/VG250_Kreise.shp') # source https://www.zensus2011.de/EN/Media/Background_material/Background_material_node.html
 dis.to_crs(3035,inplace=True)
 dis.rename(columns={'GEN':'city_name'},inplace=True)
 
@@ -40,7 +40,7 @@ gdf_boundary['boundary_buffer2km']=gdf_boundary['boundary'].buffer(2000)
 gdf_boundary.set_geometry('boundary_buffer2km',inplace=True)
 
 # read in postcodes gdf, these are the 5-digit postcode shapes downloaded from https://www.suche-postleitzahl.org/downloads on 8 June 2022. Original source is OSM
-fp = "C:/Users/peter/Documents/projects/city_mobility/shapefiles/plz-5stellig.shp/plz-5stellig.shp"
+fp = "../shapefiles/plz-5stellig.shp/plz-5stellig.shp"
 de_plz = gpd.read_file(fp)
 de_plz.to_crs(crs0,inplace=True)
 de_plz['area']=de_plz.area*1e-6
@@ -55,10 +55,16 @@ for city in cities:
     city_plz.update( {city : join.loc[join['city_name'] == city,'plz'].values})
 
 # save post code list by city as pickel file, this excludes the added postcodes below.
-city_plz_fp='C:/Users/peter/Documents/projects/city_mobility/dictionaries/city_postcode_DE_basic.pkl'
+city_plz_fp='../dictionaries/city_postcode_DE_basic.pkl'
 a_file = open(city_plz_fp, "wb")
 pickle.dump(city_plz, a_file)
 a_file.close()
+
+#create and save a city boundary csv shapefile for each city
+for c in cities:
+    city_boundary=gpd.GeoDataFrame(geometry=[de_plz.loc[de_plz['plz'].isin(city_plz[c]),'geometry'].unary_union],crs=crs0)
+    city_boundary['crs']=crs0
+    city_boundary.to_csv('../outputs/city_boundaries/' + c + '_basic.csv',index=False)
 
 # Subjective addition of peripheral postcodes considered to be part of the city area ##
 
