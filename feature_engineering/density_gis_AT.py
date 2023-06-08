@@ -112,8 +112,8 @@ boundary.to_csv('../outputs/city_boundaries/' + city + '.csv',index=False)
 
 # save the gdfs and dict
 wien_ext=wien_ext.loc[:,('ID2','geometry','NAME','state','Population','area','Density')]
-wien_ext.rename(columns={'ID2':'geo_unit'},inplace=True )
-wien_ext.sort_values(by='geo_unit',inplace=True)
+wien_ext.rename(columns={'ID2':'geocode'},inplace=True )
+wien_ext.sort_values(by='geocode',inplace=True)
 wien_ext.to_csv('../outputs/density_geounits/' + city + '_pop_density.csv',index=False)
 
 # create and save some summary stats
@@ -131,7 +131,7 @@ writer.close()
 
 # save dictionary of Wien municipalities
 city_plz={}
-city_plz.update( {'Wien' : wien_ext['geo_unit'].values})
+city_plz.update( {'Wien' : wien_ext['geocode'].values})
 with open('../dictionaries/city_postcode_AT.pkl', 'wb') as f:
     pickle.dump(city_plz, f)
 

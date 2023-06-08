@@ -1,3 +1,6 @@
+# script to calculate location of subcenters, and distances from postcodes to center and subcenters in French cities, Madrid, and Wien
+# last update Peter Berrill June 6 2023
+
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -12,19 +15,19 @@ import pickle
 import matplotlib.pyplot as plt
 from matplotlib_scalebar.scalebar import ScaleBar
 from citymob import import_csv_w_wkt_to_gdf, remove_holes, remove_invalid_geoms
+import sys
 
 crs0=3035
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria']
 
 # load in the 1km grid from Inspire for each country, and use this grid to estimate the subcenters.
-grid_FR=gpd.read_file('C:/Users/peter/Documents/general_GIS_files/France/Inspire_1km_grid/fr_1km.shp') 
-grid_ES=gpd.read_file('C:/Users/peter/Documents/general_GIS_files/Spain/Grid_ETRS89_LAEA_ES_1K/Grid_ETRS89_LAEA_ES_1K.shp') 
-grid_AT=gpd.read_file('C:/Users/peter/Documents/general_GIS_files/Austria/Grid_ETRS89_LAEA_AT_1K/Grid_ETRS89_LAEA_AT_1K.shp') 
-
+grid_FR=gpd.read_file('../../../general_GIS_files/France/Inspire_1km_grid/fr_1km.shp') 
+grid_ES=gpd.read_file('../../../general_GIS_files/Spain/Grid_ETRS89_LAEA_ES_1K/Grid_ETRS89_LAEA_ES_1K.shp') 
+grid_AT=gpd.read_file('../../../general_GIS_files/Austria/Grid_ETRS89_LAEA_AT_1K/Grid_ETRS89_LAEA_AT_1K.shp') 
 
 # read in shapefile of user-defined city centers
-centers=import_csv_w_wkt_to_gdf('../shapefiles/citycenters/centers.csv',crs=4326)
+centers=import_csv_w_wkt_to_gdf('../source/citycenters/centers.csv',crs=4326)
 centers.to_crs(crs0,inplace=True)
 def subcenters(city):
     print(city)
@@ -135,7 +138,7 @@ def subcenters(city):
 
     # define cut-off
     if city =='Paris':
-        CO=0.9
+        CO=1
         # First calculate distance based sub-centers, i.e. points of high concentration of built-up area
         # That means, within each distance group, identify which cells are above the cutoff (defined as group mean + 1SD) of bldg footprint per km2
         result_gdf['group_mean'] = grouped_gdf['Sum Bldg Footprint (m2)'].transform('mean')
@@ -180,8 +183,6 @@ def subcenters(city):
     print('regional &  dist-based centers: ', sum(result_gdf['isCenter_regional_dist']))
     # create dataframes contaning only the cells which pass the different thresholds
     centers_regional_dist=result_gdf.loc[result_gdf['isCenter_regional_dist']==True,]
-    # centers_dist=result_gdf.loc[result_gdf['isCenter_dist']==True,]
-    # centers_regional=result_gdf.loc[result_gdf['isCenter_regional']==True,]
 
     ### So now we have identified the grid cell identified as centers using regional and distance-based approaches, and by both. ######
     # Next step is to turn the subcenter areas into individual points. 
@@ -300,8 +301,8 @@ def subcenters(city):
     # create dataframe containing the weighted centers, volume, and then calculate volume density for each postcode
     plz_wgt_cent=gpd.GeoDataFrame(data,crs=crs0,columns =['geocode','geometry'])
     plz_wgt_cent.rename(columns={'geometry':'wgt_center'},inplace=True)
-    plz_poly2=city_poly.merge(plz_wgt_cent).copy() #https://stackoverflow.com/questions/10851906/python-3-unboundlocalerror-local-variable-referenced-before-assignment
-    plz_poly2=plz_poly2.merge(plz_vol,how='left') # because some polys might have 0 buildings
+    plz_poly2=city_poly.merge(plz_wgt_cent).copy() 
+    plz_poly2=plz_poly2.merge(plz_vol,how='left') # left merge because some polys might have 0 buildings
     plz_poly2['area']=plz_poly2.area*1e-6 # area of postcode in km2
 
     # calculate building volume density (m3/km2) for each postcode
@@ -359,7 +360,6 @@ def subcenters(city):
     # # merge the postcode into the df of distance to center by index
     d2c=d2c.merge(plz_wgt_cent,left_index=True,right_index=True)
     d2c=d2c.loc[:,('geocode','Distance2Center','wgt_center')].copy()
-    
 
     # merge the distance to center and distance to subcenter by postcode
     d2=d2sc.merge(d2c)
@@ -392,7 +392,6 @@ def subcenters(city):
     cp0.plot(ax=ax,facecolor='red')
     plt.title("Grid cells with a threhold of " + str(CO) + "SD above mean, using regional AND distance-based thresholds \n Black dots identify the highest density cells of each contiguous group. City: " + city)
     plt.savefig('../outputs/CenterSubcenter/'+ city + '_centercells.png',facecolor='w')
-    #plt.savefig('../outputs/CenterSubcenter/'+ city + '_large_centercells.png',facecolor='w')
     plt.close()
 
     fig, ax = plt.subplots(figsize=(10,10))
@@ -406,7 +405,6 @@ def subcenters(city):
     cp0.plot(ax=ax,facecolor='red')   
     plt.title("City boundary, buildings, center, and region+distance-based subcenters: " + city)   
     plt.savefig('../outputs/CenterSubcenter/'+ city + '_bldgs_subcenters.png',facecolor='w')
-    #plt.savefig('../outputs/CenterSubcenter/'+ city + '_large_bldgs_subcenters.png',facecolor='w')
     plt.close()
 
     ## Plot and save sum building volumes by grid cell
@@ -419,13 +417,14 @@ def subcenters(city):
     d2_poly.plot(ax=ax,alpha=0.25,edgecolor='black',facecolor='None') 
     plt.title('Building volume by grid cell with postcodes, centers and subcenters, ' + city)  
     plt.savefig('../outputs/CenterSubcenter/'+ city + '_vol_gridcell.png',facecolor='w')
-    #plt.savefig('../outputs/CenterSubcenter/'+ city + '_large__vol_gridcell.png',facecolor='w')
     plt.close()
 
     # now also calculate centers and subcenters for hi-res units
+    if city in ['Paris','Wien']:
+        sys.exit(0)
 
     if city=='Clermont':
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0924_Clermont.csv/Doc/SIG/EDGT Clermont2012_DTIR.mid'
+        fp='../../MSCA_data/FranceRQ/lil-0924_Clermont.csv/Doc/SIG/EDGT Clermont2012_DTIR.mid'
         gdf_hi=gpd.read_file(fp)
         gdf_hi.to_crs(crs0,inplace=True)
         geo_unit=gdf_hi['NUM_DTIR'].sort_values().unique()
@@ -440,7 +439,7 @@ def subcenters(city):
         gdf_hi.rename(columns={'DFIN':'geocode'},inplace=True)
 
     if city=='Montpellier':
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_Zones fines.mid'
+        fp='../../MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_Zones fines.mid'
         gdf_hi=gpd.read_file(fp)
         # boundary of gdf is set below for Montpellier
         gdf_hi=gdf_hi.to_crs(crs0)
@@ -449,14 +448,14 @@ def subcenters(city):
         gdf_hi['area']=gdf_hi.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_DTIR.mid'
+        fp2='../../MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_DTIR.mid'
         gdf2=gpd.read_file(fp2)
         geo_unit=gdf2.loc[gdf2['D5_D10']=='01', 'DTIR'].sort_values().unique()
         gdf_hi=gdf_hi.loc[(gdf_hi['ID_ENQ']==1) & (gdf_hi['NUM_SECTEUR'].isin(geo_unit)),]
         gdf_hi.rename(columns={'NUM_ZF_2013':'geocode'},inplace=True)
     
     if city=='Lyon': # think i use the .tab file https://stackoverflow.com/questions/22218069/how-to-load-mapinfo-file-into-geopandas for mapinfo gis file
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_ZF_GT.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_ZF_GT.TAB'
         gdf_hi=gpd.read_file(fp)
         # restrict to D12 zones 01 to 04 (DTIR<258), these are sufficiently close to the center of Lyon, and combined make up an area of 841km2 (quite largr).
         # It corresponds to all of Métropole de Lyon plus some additional nearby regions: Sepal, + a little bit of Ouest Rhône
@@ -483,7 +482,7 @@ def subcenters(city):
         gdf_hi.rename(columns={'ZF_SEC_EMD2013':'geocode'},inplace=True)
 
     if city=='Nantes': 
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_ZF.TAB'
         gdf_hi=gpd.read_file(fp)
 
         # restrict to Nantes Metropole
@@ -495,9 +494,8 @@ def subcenters(city):
         gdf_hi['area']=gdf_hi.area*1e-6
         gdf_hi.rename(columns={'Id_zf_cerema':'geocode'},inplace=True)
         
-
     if city=='Nimes':
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_ZF.TAB'
         gdf_hi=gpd.read_file(fp)
         # restrict to Nimes city, which covers dtir 1-20. This is small (161km2). Could optionally extend to Communauté d'agglomération Nîmes Métropole, but that would leave us with a very low density (326/km2) and it is questionable whether that area is 'city'
         geo_unit=gdf_hi.loc[gdf_hi['NOM_DTIR']=='NIMES','NUM_DTIR'].sort_values().unique()  
@@ -508,9 +506,8 @@ def subcenters(city):
         gdf_hi['area']=gdf_hi.area*1e-6
         gdf_hi.rename(columns={'NUM_ZF_2013':'geocode'},inplace=True)
         
-
     if city=='Dijon':
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_ZF.TAB'
         gdf_hi=gpd.read_file(fp)
         # restrict  to the Ville de Dijon and Grand Dijon hypercentre, which covers dtir 1-20. These all had face to face interviews.
         geo_unit=gdf_hi.loc[gdf_hi['NUM_D2']=='01','NUM_DTIR'].sort_values().unique() 
@@ -522,7 +519,7 @@ def subcenters(city):
         gdf_hi.rename(columns={'NUM_ZF':'geocode'},inplace=True)
 
     if city=='Lille':
-        fp='C:/Users/peter/Documents/projects/MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_ZF.TAB'
+        fp='../../MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_ZF.TAB'
         gdf_hi=gpd.read_file(fp)
         # restrict to the métropole européenne de lille, which covers the French part of the eurumetripole, and includes also the cities of Tourcoing and Roubaix.
         geo_unit=gdf_hi.loc[gdf_hi['ST']<158,'ST'].sort_values().unique() 
@@ -535,11 +532,11 @@ def subcenters(city):
         gdf_hi.rename(columns={'ZFIN2016F':'geocode'},inplace=True)
 
     if city=='Madrid':
-        fp='C:/Users/peter/Documents/projects/MSCA_data/madrid/EDM2018/ZonificacionZT1259-shp/ZonificacionZT1259.shp'
+        fp='../../MSCA_data/madrid/EDM2018/ZonificacionZT1259-shp/ZonificacionZT1259.shp'
         gdf=gpd.read_file(fp)
         gdf.to_crs(crs0,inplace=True)
 
-        fp2='C:/Users/peter/Documents/projects/MSCA_data/madrid/EDM2018/ZonificacionZT208-shp/ZonificacionZT208.shp'
+        fp2='../../madrid/EDM2018/ZonificacionZT208-shp/ZonificacionZT208.shp'
         gdf2=gpd.read_file(fp2)
         gdf2.to_crs(crs0,inplace=True)
         gdf2['Municipality']= [elem.split('-')[0] for elem in gdf2.ZT208]
@@ -673,7 +670,6 @@ def subcenters(city):
     d2c=d2c.merge(plz_wgt_cent2,left_index=True,right_index=True)
     d2c=d2c.loc[:,('geocode','Distance2Center','wgt_center')].copy()
 
-
     # merge the distance to center and distance to subcenter by postcode
     d2=d2sc.merge(d2c)
     # merge the building volume density into the distance to center dataframe for saving
@@ -687,8 +683,5 @@ def subcenters(city):
 
     print('Finished calculating center and subcenters for ' + city)
 
-#cities=pd.Series(['Lille','Nantes','Toulouse','Nimes','Montpellier'])
-cities=pd.Series(['Madrid'])
-#cities=pd.Series(['Lyon'])
-#cities=pd.Series(['Clermont','Lille','Nantes','Toulouse','Nimes'])
+cities=pd.Series(['Dijon','Clermont','Lille','Nantes','Toulouse','Nimes','Lyon','Montpellier','Paris','Madrid','Wien'])
 cities.apply(subcenters)
