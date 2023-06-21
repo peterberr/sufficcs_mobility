@@ -2,3 +2,4 @@
 /shapefiles/*
 *__pycache__/
 */cache/
+/figures/

@@ -2,16 +2,17 @@ import pickle
 
 var_dict_H = {'Grid_Cell':'RESC','Commune':'RESCOMM','HHNR':'NQUEST', # Variables related to administrative boundary units and identifiers
 'Week':'SEM',
-'BikeAvailable':'NB_VELO', 'CarAvailable':'NB_VD','2_3WAvailable':'NB_2RM',
-'HH_Size':'MNP','IncomeDetailed':'REVENU','IncomeHarmonised':'REVENU',
+'BikeAvailable':'NB_VELO', 'CarAvailable':'NB_VD','CarOwnershipHH':'NB_VD','2_3WAvailable':'NB_2RM',
+'HHSize':'MNP','IncomeDetailed':'REVENU','IncomeHarmonised':'REVENU',
 'HouseType':'TYPELOG','HouseTenure':'OCCUPLOG','HouseTenureAgg':'OCCUPLOG','HH_Weight':'POIDSM'}
 
 value_dict_H={'Grid_Cell': {}, 'Commune': {}, 'HHNR':{}, # Variables related to administrative boundary units and identifiers
 'Week':{},
 'BikeAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1, 11:1, 12:1},
 'CarAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1},
 '2_3WAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1},
-'HH_Size': {},
+'HHSize': {},
 'IncomeDetailed': {1: 'Under800', 2: '800-1200', 3: '1200-1600', 4: '1600-2000', 5:'2000-2400', 6:'2400-3000', 7:'3000-3500', 8:'3500-4500', 9:'4500-5500',10:'Over5500',11:'Unkown',12:'Unknown'},
 'IncomeHarmonised': {1: 'Under1000', 2: '1000-2000', 3: '1000-2000', 4: '1000-2000', 5: '2000-3000', 6: '2000-3000', 7: '3000-4500', 8: '3000-4500', 9:'Over4500',10:'Over4500',11:'Unkown',12:'Unknown'},
 'HouseType': {1:'SFH', 2:'SFH', 3:'SFH', 4:'MFH_small', 5:'MFH_large', 6:'MFH_large', 7:'Unknown'},
@@ -20,7 +21,7 @@ value_dict_H={'Grid_Cell': {}, 'Commune': {}, 'HHNR':{}, # Variables related to 
 'HH_Weight':{}
 }
 # values to fill in with if NA
-na_dict_H={'BikeAvailable':0,'CarAvailable':0,'2_3WAvailable':0,'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown',
+na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'2_3WAvailable':0,'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown',
 'HouseType':'Unknown','HouseTenure':'Unknown','HouseTenureAgg':'Unknown'}
 
 var_dict_P = {'Grid_Cell':'RESC','Commune':'RESCOMM','HHNR':'NQUEST','Person':'NP', # Variables related to administrative boundary units and identifiers

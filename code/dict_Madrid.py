@@ -1,11 +1,11 @@
 import pickle
 
 var_dict_H = {'Sector':'CZ208','Zone':'ZT1259','HHNR':'ID_HOGAR', # Variables related to administrative boundary units and identifiers
-'HHS':'A1PER','HHS2':'N_MIEMBROS_POR_HOGAR','N_Vehicles':'B1NVE','Type_V1':'V1B11TIPO','Type_V2':'V2B11TIPO1','Type_V3':'V3B11TIPO1','Type_V4':'V4B11TIPO1','Type_V5':'V5B11TIPO1',
+'HHSize':'A1PER','HHS2':'N_MIEMBROS_POR_HOGAR','N_Vehicles':'B1NVE','Type_V1':'V1B11TIPO','Type_V2':'V2B11TIPO1','Type_V3':'V3B11TIPO1','Type_V4':'V4B11TIPO1','Type_V5':'V5B11TIPO1',
 'HH_Weight':'ELE_HOGAR_NUEVO'}
 
 value_dict_H={'Sector': {},'Zone': {},'HHNR': {}, # Variables related to administrative boundary units and identifiers
-'HHS':{},'HHS2':{},
+'HHSize':{},'HHS2':{},
 'N_Vehicles':{},'Type_V1':{},'Type_V2':{},'Type_V3':{},'Type_V4':{},'Type_V5':{},
 'HH_Weight':{}
 }

@@ -1,24 +1,24 @@
 import pickle
 
-var_dict_H = {'Postcode':'PLZ','HHNR':'HHNR', # Variables related to administrative boundary units and identifiers
+var_dict_H = {'Res_geocode':'PLZ','HHNR':'HHNR', # Variables related to administrative boundary units and identifiers
 'HHSize':'V_ANZ_PERS','IncomeDetailed':'V_EINK', 'IncomeHarmonised':'V_EINK','IncomeDetailed_Numeric':'V_EINK','HHType':'E_HHTYP',  # household size and income
-'MBikeWAvailable':'V_ANZ_MOT125','MopScootAvailable':'V_ANZ_MOPMOT', # ownership of transport vehicles, availability of car/bike is in the person file
+'MBikeAvailable':'V_ANZ_MOT125','MopScootAvailable':'V_ANZ_MOPMOT','CarOwnershipHH':'V_ANZ_PKW_PRIV', # ownership of transport vehicles, availability of car/bike is in the person file
 'Time2Bus':'V_GEHZEIT_BUS_HH','Time2Tram':'V_GEHZEIT_STRAB_HH','Time2SBahn':'V_GEHZEIT_SBAHN_HH','Time2UBahn':'V_GEHZEIT_UBAHN_HH','Time2Train':'V_GEHZEIT_NFZUG_HH', # Variables related to proximity to transit
 'HH_Weight':'GEWICHT_HH'}
 
-value_dict_H={'Postcode': {}, 'HHNR': {}, 'HHSize':{},
+value_dict_H={'Res_geocode': {}, 'HHNR': {}, 'HHSize':{},
 'IncomeDetailed': {1:'Under500',2:'500-900',3:'900-1500',4:'1500-2000',5:'2000-2600',6:'2600-3000',7:'3000-3600',8:'3600-4600',9:'4600-5600',10:'Over5600'},
 'IncomeHarmonised': {1:'Under1000',2:'Under1000',3:'1000-2000',4:'1000-2000',5:'2000-3000',6:'2000-3000',7:'3000-4500',8:'3000-4500',9:'Over4500',10:'Over4500'},
-'IncomeDetailed_Numeric': {1:400,2:700,3:1200,4:1750,5:2300,6:2800,7:3300,8:4100,9:5100,6:6000},
+'IncomeDetailed_Numeric': {1:400,2:700,3:1200,4:1750,5:2300,6:2800,7:3300,8:4100,9:5100,10:6000},
 'HHType': {1:'Multiperson_Kids',2:'Multiperson_NoKids',3:'SinglePerson_Under65',4:'SinglePerson_Over65'},
-'MBikeWAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-10:0},
+'MBikeAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-10:0},
 'MopScootAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-10:0},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1, 11:1, 12:1, 13:1, 14:1, 15:0,-10:0},
 'Time2Bus':{},'Time2Tram':{},'Time2SBahn':{},'Time2UBahn':{},'Time2Train':{},
 'HH_Weight':{}
 }
 
-na_dict_H={'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown','HHType':'Unknown','MBikeWAvailable':0,'MopScootAvailable':0}
-
+na_dict_H={'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown','HHType':'Unknown','MBikeAvailable':0,'MopScootAvailable':0,'CarOwnershipHH':0}
 
 var_dict_P = {'HHNR':'HHNR','Person':'PNR', # Variables related to administrative boundary units and identifiers
 'Age':'V_ALTER','Sex':'V_GESCHLECHT', # i don't see a 'relationship' variable in srv. the trip month and day coming from the trip file

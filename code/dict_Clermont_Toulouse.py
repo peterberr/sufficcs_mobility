@@ -11,11 +11,12 @@ value_dict_H0={'IncomeDetailed': {1: 'Under1000', 2: '1000-2000', 3: '2000-3000'
 # second the dictionaries needed to extract all other files from the standardized household, person, and trip (W) files
 
 var_dict_H = {'Sector_Zone':'ZFM','Sample':'ECH', # Variables related to administrative boundary units and identifiers
-'BikeAvailable':'M21', 'CarAvailable':'M6','2_3WAvailable':'M14','HouseType':'M1','HouseTenure':'M2','HouseTenureAgg':'M2','HH_Weight':'COE0'}
+'BikeAvailable':'M21', 'CarAvailable':'M6','CarOwnershipHH':'M6','2_3WAvailable':'M14','HouseType':'M1','HouseTenure':'M2','HouseTenureAgg':'M2','HH_Weight':'COE0'}
 
 value_dict_H={'Sector_Zone': {}, 'Sample': {}, # Variables related to administrative boundary units and identifiers
 'BikeAvailable': {0:0, 1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1,12:1,13:1,14:1,15:1},
 'CarAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
 '2_3WAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
 'HouseType': {1:'SFH', 2:'SFH', 3:'MFH_small', 4:'MFH_large', 5:'Unknown'},
 'HouseTenure': {1:'Owner', 2:'Renter_Social', 3:'Renter_Private', 4:'Rent_Free', 5:'Renter_Private',6:'Unknown',7:'Unknown',8:'Unknown'},
@@ -23,7 +24,7 @@ value_dict_H={'Sector_Zone': {}, 'Sample': {}, # Variables related to administra
 'HH_Weight':{}
 }
 
-na_dict_H={'BikeAvailable':0,'CarAvailable':0,'2_3WAvailable':0,
+na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'2_3WAvailable':0,
 'HouseType':'Unknown','HouseTenure':'Unknown','HouseTenureAgg':'Unknown'}
 
 var_dict_P = {'Sector_Zone':'ZFP','Sample':'ECH','Person':'PER', # Variables related to administrative boundary units and identifiers
@@ -66,7 +67,6 @@ value_dict_W={'Sector_Zone': {}, 'Sample': {}, 'Person': {},'Trip':{},
 }
 
 na_dict_W={}
-
 
 # Combine variable, value, and na dictionaries
 var_all = {'HH0': var_dict_H0, 'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
