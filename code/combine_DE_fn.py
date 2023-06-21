@@ -82,7 +82,7 @@ def combine_survey_data(city):
 
     # bring HHNR and geo_unit to the left side of the HH df
     cols=sH.columns.tolist()
-    cols_new = ['HHNR', 'Postcode'] + [value for value in cols if value not in {'HHNR', 'Postcode'}]
+    cols_new = ['HHNR', 'Res_geocode'] + [value for value in cols if value not in {'HHNR', 'Res_geocode'}]
     sH=sH[cols_new]
 
     # bring HHNR, HH_PNR, to the left side of the Per df
@@ -146,6 +146,9 @@ def combine_survey_data(city):
     # address the NA values for Education and Occupation for children under 6
     sP.loc[sP['Age']<7,['Education','Occupation']]='Pre-School'
 
+    # remove rows with NA age
+    sP=sP.loc[sP['Age']>=0,]
+
     #sP.drop(columns=['HHNR'],inplace=True)
     sW.drop(columns=['HHNR','Person', 'Ori_Reason', 'Des_Reason','Time'],inplace=True)
     sW=sW.loc[sW['Trip_Valid']==1,:]
@@ -153,9 +156,8 @@ def combine_survey_data(city):
     sHP=sH.merge(sP,on='HHNR')
     sHPW=sHP.merge(sW,on='HH_PNR')
 
-
     cols=sHPW.columns.tolist()
-    cols_new = ['HHNR','HH_PNR','HH_P_WNR','Postcode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose'] + [value for value in cols if value not in {'HHNR','HH_PNR','HH_P_WNR','Postcode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose','Mode', 'Trip_Distance'}] +['Mode', 'Trip_Distance']
+    cols_new = ['HHNR','HH_PNR','HH_P_WNR','Res_geocode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose'] + [value for value in cols if value not in {'HHNR','HH_PNR','HH_P_WNR','Res_geocode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose','Mode', 'Trip_Distance'}] +['Mode', 'Trip_Distance']
     sHPW=sHPW[cols_new]
 
     sHPW=sHPW.loc[sHPW['Ori_Plz'].isin(city_plz[city]),:]
@@ -169,28 +171,26 @@ def combine_survey_data(city):
     sHPW['Trip_Distance']=sHPW.loc[:,'Trip_Distance_Calc']*1000
     sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:]
     sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
-
-    mode_share=sHPW.groupby('Mode')['Trip_Distance'].sum()/sum(sHPW.groupby('Mode')['Trip_Distance'].sum())
+    
     weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]
     weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
-    mode_share_weighted=weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sum(weighted.groupby('Mode')['Dist_Weighted_P'].sum())
 
-    print('Weighted mode share in ' + city)
-    print(mode_share_weighted)
+    unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
 
-    print('N Trips')
-    print(len(sHPW))
+    weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
+    weight_daily_travel_all=pd.DataFrame(data={'Mode':['All'],'Daily_travel_all':0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()})
+    #weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sP['Per_Weight'].sum()).reset_index()
+    weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
+    weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
-    print('Avg trip distance in km, overall: ', round(0.001*np.average(sHPW['Trip_Distance'],weights=sHPW['Trip_Weight']),1))
+    carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+    own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
+    weight_daily_travel=weight_daily_travel.merge(own,how='left')
+    weight_daily_travel=weight_daily_travel.merge(weight_daily_travel_all,how='outer')
 
-    person_trips=pd.DataFrame(sHPW.groupby('HH_PNR')['Trip_Distance'].sum()).reset_index()
-    print('Average travel distance per person per day, all modes, km/cap: ' , str(round(0.001*person_trips['Trip_Distance'].mean(),1)))
+    weight_daily_travel.to_csv('../outputs/summary_stats/'+city+'_stats.csv',index=False)
 
-    person_mode_trips=pd.DataFrame(sHPW.groupby(['HH_PNR','Mode'])['Trip_Distance'].sum()).reset_index()
-    print('Average travel distance per person per day, all modes, km/cap: ')
-    print(str(round(0.001*person_mode_trips.groupby('Mode')['Trip_Distance'].sum()/len(person_trips),1)))
-
-    if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(person_trips):
+    if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(sHPW.loc[:,('HH_PNR')].drop_duplicates()):
         print('NB! Some respondents report trips over more than one day')
 
     sHPW['Trip_Speed']=round(60*0.001*sHPW['Trip_Distance']/(sHPW['Trip_Duration']),2)
@@ -199,143 +199,264 @@ def combine_survey_data(city):
 
     # load in UF stats
     # population density
-    pop_dens=pd.read_csv('../outputs/density_geounits/' + city + '_pop_density.csv',dtype={'geo_unit':str})
+    pop_dens=pd.read_csv('../outputs/density_geounits/' + city + '_pop_density.csv',dtype={'geocode':str})
     pop_dens.drop(columns=['geometry','note','population','area'],inplace=True)
-    # building density and distance to city center
-    bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'plz':str})
+    # building density and distance to city center, here plz needs to change to geocode
+    bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'geocode':str})
+    bld_dens.drop(columns=['wgt_center'],inplace=True)
     # connectivity stats
-    conn=pd.read_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',dtype={'plz':str})
+    conn=pd.read_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',dtype={'geocode':str})
     # decide which connectivity stats we want to keep
-    conn=conn.loc[:,('plz','k_avg','clean_intersection_density_km','street_density_km','streets_per_node_avg','street_length_avg')]
-    conn_vars=conn.drop(columns='plz').columns
+    conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg','streets_per_node_avg')]
+   
     # land-use
-    lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'plz':str})
+    lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'geocode':str})
     # decide which lu varibales to use
-    lu=lu.loc[:,('plz','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
+    lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
 
     # now merge all urban form features with the survey data.
 
     # population density origin
-    sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_Plz',right_on='geo_unit').copy()
-    sHPW_UF.drop(columns='geo_unit',inplace=True)
+    sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_Plz',right_on='geocode').copy()
+    sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'Density':'PopDensity_origin'},inplace=True)
     # population density destination
-    #sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Des_Plz',right_on='geo_unit',how='left').copy() # allow for nans in destination data, see if/how model deals with them
-    sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Des_Plz',right_on='geo_unit').copy() # allow for nans in destination data, see if/how model deals with them
-    sHPW_UF.drop(columns='geo_unit',inplace=True)
-    sHPW_UF.rename(columns={'Density':'PopDensity_dest'},inplace=True)
+    # sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Des_Plz',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+    # sHPW_UF.drop(columns='geocode',inplace=True)
+    # sHPW_UF.rename(columns={'Density':'PopDensity_dest'},inplace=True)
+    sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'Density':'PopDensity_res'},inplace=True)
 
     # buidling density and distance to centers origin
-    sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_Plz',right_on='plz').copy() 
-    sHPW_UF.drop(columns='plz',inplace=True)
+    sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_Plz',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_origin','Distance2Center':'DistCenter_origin','build_vol_density':'BuildDensity_origin'},inplace=True)
     # buidling density and distance to centers destination
-    sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Des_Plz',right_on='plz').copy() # allow for nans in destination data, see if/how model deals with them
-    sHPW_UF.drop(columns='plz',inplace=True)
-    sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_dest','Distance2Center':'DistCenter_dest','build_vol_density':'BuildDensity_dest'},inplace=True)
+    # sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Des_Plz',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+    # sHPW_UF.drop(columns='geocode',inplace=True)
+    # sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_dest','Distance2Center':'DistCenter_dest','build_vol_density':'BuildDensity_dest'},inplace=True)
+    sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_res','Distance2Center':'DistCenter_res','build_vol_density':'BuildDensity_res'},inplace=True)
 
     # connectivity stats, origin
-    sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_Plz',right_on='plz').copy() 
-    sHPW_UF.drop(columns='plz',inplace=True)
+    sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_Plz',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'k_avg':'K_avg_origin','clean_intersection_density_km':'IntersecDensity_origin','street_density_km':'StreetDensity_origin',
     'streets_per_node_avg':'StreetsPerNode_origin','street_length_avg':'StreetLength_origin'},inplace=True)
-
     # connectivity stats, destination
-    sHPW_UF=sHPW_UF.merge(conn,left_on='Des_Plz',right_on='plz').copy() 
-    sHPW_UF.drop(columns='plz',inplace=True)
-    sHPW_UF.rename(columns={'k_avg':'K_avg_dest','clean_intersection_density_km':'IntersecDensity_dest','street_density_km':'StreetDensity_dest',
-    'streets_per_node_avg':'StreetsPerNode_dest','street_length_avg':'StreetLength_dest'},inplace=True)
+    # sHPW_UF=sHPW_UF.merge(conn,left_on='Des_Plz',right_on='geocode').copy() 
+    # sHPW_UF.drop(columns='geocode',inplace=True)
+    # sHPW_UF.rename(columns={'k_avg':'K_avg_dest','clean_intersection_density_km':'IntersecDensity_dest','street_density_km':'StreetDensity_dest',
+    # 'streets_per_node_avg':'StreetsPerNode_dest','street_length_avg':'StreetLength_dest'},inplace=True)
+    sHPW_UF=sHPW_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'k_avg':'K_avg_res','clean_intersection_density_km':'IntersecDensity_res','street_density_km':'StreetDensity_res',
+    'streets_per_node_avg':'StreetsPerNode_res','street_length_avg':'StreetLength_res'},inplace=True)
 
     # land-use stats, origin
-    sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_Plz',right_on='plz').copy() 
-    sHPW_UF.drop(columns='plz',inplace=True)
+    sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_Plz',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_origin','pc_comm':'LU_Comm_origin','pc_road':'LU_Road_origin',
     'pc_urban':'LU_Urban_origin'},inplace=True)
 
     # land-use stats, destination
-    sHPW_UF=sHPW_UF.merge(lu,left_on='Des_Plz',right_on='plz').copy() 
-    sHPW_UF.drop(columns='plz',inplace=True)
-    sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_dest','pc_comm':'LU_Comm_dest','pc_road':'LU_Road_dest',
-    'pc_urban':'LU_Urban_dest'},inplace=True)
+    # sHPW_UF=sHPW_UF.merge(lu,left_on='Des_Plz',right_on='geocode').copy() 
+    # sHPW_UF.drop(columns='geocode',inplace=True)
+    # sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_dest','pc_comm':'LU_Comm_dest','pc_road':'LU_Road_dest',
+    # 'pc_urban':'LU_Urban_dest'},inplace=True)
+    sHPW_UF=sHPW_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res','pc_road':'LU_Road_res',
+    'pc_urban':'LU_Urban_res'},inplace=True)
+
+    # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
+    # sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_UrbFab_origin']
+    # sHPW_UF['UrbPopDensity_dest']=sHPW_UF['PopDensity_dest']/sHPW_UF['LU_UrbFab_dest']
+    sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_Urban_origin']
+    # sHPW_UF['UrbPopDensity_dest']=sHPW_UF['PopDensity_dest']/sHPW_UF['LU_Urban_dest']
+    sHPW_UF['UrbPopDensity_res']=sHPW_UF['PopDensity_res']/sHPW_UF['LU_Urban_res']
+
+    sHPW_UF['UrbBuildDensity_origin']=sHPW_UF['BuildDensity_origin']/sHPW_UF['LU_Urban_origin']
+    #sHPW_UF['UrbBuildDensity_dest']=sHPW_UF['BuildDensity_dest']/sHPW_UF['LU_Urban_dest']
+    sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res']
 
     # mean time to transit
-    mean_time_tran=pd.DataFrame(sHPW[['Postcode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Postcode'])['Time2Transit'].sum()/sHPW[['Postcode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Postcode'])['HH_Weight'].sum()).reset_index()
+    mean_time_tran=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['Time2Transit'].sum()/sHPW[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index()
     mean_time_tran.rename(columns={0:'MeanTime2Transit'},inplace=True)
 
     # mean time to transit, origin
-    sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Ori_Plz',right_on='Postcode').copy() 
-    sHPW_UF.drop(columns={'Postcode_y',},inplace=True)
-    sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_origin','Postcode_x':'Postcode'},inplace=True)
+    sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Ori_Plz',right_on='Res_geocode').copy() 
+    sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
+    sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_origin','Res_geocode_x':'Res_geocode'},inplace=True)
 
     # mean time to transit, destination
-    sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Des_Plz',right_on='Postcode').copy() 
-    sHPW_UF.drop(columns={'Postcode_y',},inplace=True)
-    sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_dest','Postcode_x':'Postcode'},inplace=True)
+    # sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Des_Plz',right_on='Res_geocode').copy() 
+    # sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
+    # sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_dest','Res_geocode_x':'Res_geocode'},inplace=True)
+    sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Res_geocode',right_on='Res_geocode').copy() 
+    #sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
+    sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_res'},inplace=True)
+
+    # rename columns for consistency
+    sHPW_UF.rename(columns={'Ori_Plz':'Ori_geocode','Des_Plz':'Des_geocode'},inplace=True)
 
     sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
 
+    # create file used to model HH car ownership
 
+    sHP['Adult']=0
+    sHP['Child']=0
+    sHP.loc[sHP['Age']>17,'Adult']=1
+    sHP.loc[sHP['Age']<18,'Child']=1
+
+    Nadult=sHP.loc[:,['HHNR','Adult']].groupby('HHNR')['Adult'].sum().reset_index()
+    Nadult.rename(columns={'Adult':'N_Adult_HH'},inplace=True)
+    Nchild=sHP.loc[:,['HHNR','Child']].groupby('HHNR')['Child'].sum().reset_index()
+    Nchild.rename(columns={'Child':'N_Child_HH'},inplace=True)
+    sHP=sHP.merge(Nadult)
+    sHP=sHP.merge(Nchild)
+    ages=sHP.loc[:,['HHNR','Age']].groupby('HHNR')['Age'].describe().reset_index() 
+    ages=ages.loc[:,['HHNR','min','max']]
+    ages.rename(columns={'min':'minAgeHH','max':'maxAgeHH'},inplace=True)
+    sHP=sHP.merge(ages)
+
+    sHP['HHType_simp']='Blank'
+    sHP.loc[(sHP['HHSize']==1) &  (sHP['Sex']==1), 'HHType_simp']='Single_Male'
+    sHP.loc[(sHP['HHSize']==1) & (sHP['Sex']==2), 'HHType_simp']='Single_Female'
+
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']>0) & (sHP['Age']>17) & (sHP['Sex']==1), 'HHType_simp']='Single_Male_Parent' 
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']>0) & (sHP['Age']>17) & (sHP['Sex']==2), 'HHType_simp']='Single_Female_Parent'
+
+    sHP.loc[(sHP['N_Adult_HH']>1) & (sHP['N_Child_HH']>0), 'HHType_simp']='MultiAdult_Kids'
+
+    sHP.loc[(sHP['N_Adult_HH']>1) & (sHP['N_Child_HH']==0) , 'HHType_simp']='MultiAdult'
+
+    # fill in the type for kids in single parent households
+    for hh in sHP.loc[sHP['HHType_simp']=='Blank','HHNR']:
+        if 'Single_Male_Parent' in sHP.loc[sHP['HHNR']==hh,'HHType_simp'].values:
+            sHP.loc[sHP['HHNR']==hh,'HHType_simp']='Single_Male_Parent'
+        if 'Single_Female_Parent' in sHP.loc[sHP['HHNR']==hh,'HHType_simp'].values:
+            sHP.loc[sHP['HHNR']==hh,'HHType_simp']='Single_Female_Parent'
+
+    sHP['HHType_det']='Blank'
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']==0) & (sHP['Sex']==1) & (sHP['Age']<40), 'HHType_det']='Single_Male_Under40'
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']==0) & (sHP['Sex']==2) & (sHP['Age']<40), 'HHType_det']='Single_Female_Under40'
+
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']==0) & (sHP['Sex']==1) & (sHP['Age']>39) & (sHP['Age']<65), 'HHType_det']='Single_Male_40-64'
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']==0) & (sHP['Sex']==2) & (sHP['Age']>39) & (sHP['Age']<65), 'HHType_det']='Single_Female_40-64'
+
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']==0) & (sHP['Sex']==1) & (sHP['Age']>64), 'HHType_det']='Single_Male_>64'
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']==0) & (sHP['Sex']==2) & (sHP['Age']>64), 'HHType_det']='Single_Female_>64'
+
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']>0) & (sHP['Age']>17) & (sHP['Sex']==1), 'HHType_det']='Single_Male_Parent' 
+    sHP.loc[(sHP['N_Adult_HH']==1) & (sHP['N_Child_HH']>0) & (sHP['Age']>17) & (sHP['Sex']==2), 'HHType_det']='Single_Female_Parent'
+
+    sHP.loc[(sHP['N_Adult_HH']>1) & (sHP['N_Child_HH']>0), 'HHType_det']='MultiAdult_Kids'
+
+    sHP.loc[(sHP['N_Adult_HH']>1) & (sHP['N_Child_HH']==0) & (sHP['minAgeHH']>64), 'HHType_det']='MultiAdult_>65'
+    sHP.loc[(sHP['N_Adult_HH']>1) & (sHP['N_Child_HH']==0) & (sHP['maxAgeHH']<65), 'HHType_det']='MultiAdult_Under65'
+    sHP.loc[(sHP['N_Adult_HH']>1) & (sHP['N_Child_HH']==0) & (sHP['minAgeHH']<65) & (sHP['maxAgeHH']>64), 'HHType_det']='MultiAdult_MixGen'
+
+    # fill in the type for kids in single parent households
+    for hh in sHP.loc[sHP['HHType_det']=='Blank','HHNR']:
+        if 'Single_Male_Parent' in sHP.loc[sHP['HHNR']==hh,'HHType_det'].values:
+            sHP.loc[sHP['HHNR']==hh,'HHType_det']='Single_Male_Parent'
+        if 'Single_Female_Parent' in sHP.loc[sHP['HHNR']==hh,'HHType_det'].values:
+            sHP.loc[sHP['HHNR']==hh,'HHType_det']='Single_Female_Parent'
+
+    sHP['UniversityEducation']=0
+    sHP['InEmployment']=0
+    sHP['AllRetired']=0
+
+    for h in sHP['HHNR']:
+        if 'University' in sHP.loc[sHP['HHNR']==h, 'Education'].values:
+            # print(h)
+            # print('Uni')
+            sHP.loc[sHP['HHNR']==h, 'UniversityEducation']=1
+        if any([any('Employed_PartTime' == sHP.loc[sHP['HHNR']==h, 'Occupation'].values), any('Employed_FullTime' == sHP.loc[sHP['HHNR']==h, 'Occupation'].values)]):
+            sHP.loc[sHP['HHNR']==h, 'InEmployment']=1
+        if all('Retired' == sHP.loc[sHP['HHNR']==h, 'Occupation'].values):
+            sHP.loc[sHP['HHNR']==h, 'AllRetired']=1        
+        
+    sH2=sHP.drop(columns=['HH_PNR', 'Person', 'Age', 'Sex','Training','Occupation','Education','Adult','Child','Per_Weight','MobilityConstraints','DrivingLicense', 'HH_Weight',
+                      'TransitSubscription', 'MobilityParticipation','CarAvailable','MBikeAvailable','BikeAvailable','MopScootAvailable'])
+    sH2.drop_duplicates(inplace=True)
+    if len(sH2)!=len(sH): # this error is raised for Berlin. Is it something to worry about?
+        print('Mismatch with total N households')
+
+    # population density origin
+    sH2_UF=sH2.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy()
+    sH2_UF.drop(columns='geocode',inplace=True)
+    sH2_UF.rename(columns={'Density':'PopDensity'},inplace=True)
+
+    # buidling density and distance to centers origin
+    sH2_UF=sH2_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy() 
+    sH2_UF.drop(columns='geocode',inplace=True)
+    sH2_UF.rename(columns={'minDist_subcenter':'DistSubcenter','Distance2Center':'DistCenter','build_vol_density':'BuildDensity'},inplace=True)
+
+    # connectivity stats, origin
+    sH2_UF=sH2_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
+    sH2_UF.drop(columns='geocode',inplace=True)
+    sH2_UF.rename(columns={'k_avg':'K_avg','clean_intersection_density_km':'IntersecDensity','street_density_km':'StreetDensity',
+    'streets_per_node_avg':'StreetsPerNode','street_length_avg':'StreetLength'},inplace=True)
+
+    # land-use stats, origin
+    sH2_UF=sH2_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
+    sH2_UF.drop(columns='geocode',inplace=True)
+    sH2_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab','pc_comm':'LU_Comm','pc_road':'LU_Road',
+    'pc_urban':'LU_Urban'},inplace=True)
+
+
+    # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
+    sH2_UF['UrbPopDensity']=sH2_UF['PopDensity']/sH2_UF['LU_Urban']
+    sH2_UF['UrbBuildDensity']=sH2_UF['BuildDensity']/sH2_UF['LU_Urban']
+    sH2_UF.to_csv('../outputs/Combined/' + city + '_co_UF.csv',index=False)
+    
     # now create and save some summary stats by postcode ######
     sHPW['Trip_Distance_Weighted']=sHPW['Trip_Distance']*sHPW['Trip_Weight']
 
-    # mode share of trip distance by originating postcode
-    ms_dist_all=pd.DataFrame(sHPW.groupby(['Ori_Plz'])['Trip_Distance_Weighted'].sum())
-    ms_dist_all.reset_index(inplace=True)
-    ms_dist_all.rename(columns={'Trip_Distance_Weighted':'Trip_Distance_All'},inplace=True)
-
-    ms_dist=pd.DataFrame(sHPW.groupby(['Ori_Plz','Mode'])['Trip_Distance_Weighted'].sum())
-    ms_dist.reset_index(inplace=True)
-    ms_dist=ms_dist.merge(ms_dist_all)
-    ms_dist['Share_Distance']=ms_dist['Trip_Distance_Weighted']/ms_dist['Trip_Distance_All']
-    ms_dist.drop(columns=['Trip_Distance_Weighted','Trip_Distance_All'],inplace=True)
-
-    # convert from long to wide 
-    msdp=ms_dist.pivot(index='Ori_Plz',columns=['Mode'])
-    msdp.columns = ['_'.join(col) for col in msdp.columns.values]
-    msdp.reset_index(inplace=True)
-    msdp.to_csv('../outputs/Summary_geounits/' + city + '_modeshare_origin.csv',index=False)
-
     # mode share of trip distance by residential postcode
-    ms_dist_all_res=pd.DataFrame(sHPW.groupby(['Postcode'])['Trip_Distance_Weighted'].sum())
+    ms_dist_all_res=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum())
     ms_dist_all_res.reset_index(inplace=True)
     ms_dist_all_res.rename(columns={'Trip_Distance_Weighted':'Trip_Distance_All'},inplace=True)
 
-    ms_dist_res=pd.DataFrame(sHPW.groupby(['Postcode','Mode'])['Trip_Distance_Weighted'].sum())
+    ms_dist_res=pd.DataFrame(sHPW.groupby(['Res_geocode','Mode'])['Trip_Distance_Weighted'].sum())
     ms_dist_res.reset_index(inplace=True)
     ms_dist_res=ms_dist_res.merge(ms_dist_all_res)
     ms_dist_res['Share_Distance']=ms_dist_res['Trip_Distance_Weighted']/ms_dist_res['Trip_Distance_All']
     ms_dist_res.drop(columns=['Trip_Distance_Weighted','Trip_Distance_All'],inplace=True)
 
     # convert long to wide
-    msdrp=ms_dist_res.pivot(index='Postcode',columns=['Mode'])
+    msdrp=ms_dist_res.pivot(index='Res_geocode',columns=['Mode'])
     msdrp.columns = ['_'.join(col) for col in msdrp.columns.values]
     msdrp.reset_index(inplace=True)
 
     # avg travel km/day/cap by postcode of residence
     # first calculate weighted number of surveyed people by postcode
-    plz_per_weight=pd.DataFrame(sHPW[['Postcode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Postcode'])['Per_Weight'].sum()).reset_index() 
+    plz_per_weight=pd.DataFrame(sHPW[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
     # next calculate sum weighted travel distance by residence postcode
-    plz_dist_weight=pd.DataFrame(sHPW.groupby(['Postcode'])['Trip_Distance_Weighted'].sum()).reset_index()
+    plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
     plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
     # then divide
     plz_dist_weight['Daily_Distance_Person']=0.001*round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Per_Weight'])
     plz_dist_weight.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
     # and car travel distance by residence postcode
-    plz_dist_car=pd.DataFrame(sHPW.loc[sHPW['Mode']=='Car',:].groupby(['Postcode'])['Trip_Distance_Weighted'].sum()).reset_index()
+    plz_dist_car=pd.DataFrame(sHPW.loc[sHPW['Mode']=='Car',:].groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
     plz_dist_car=plz_dist_car.merge(plz_per_weight)
     plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Per_Weight'])
     plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
 
     # car ownhership rates by household
-    plz_hh_weight=pd.DataFrame(sHPW[['Postcode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Postcode'])['HH_Weight'].sum()).reset_index() 
-    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Postcode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Postcode'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_weight=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
     plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
     plz_hh_car=plz_hh_car.merge(plz_hh_weight)
     plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)
     plz_hh_car.drop(columns=['HH_WithCar','HH_Weight'],inplace=True)
 
     # and mean time to transite by postcode
-
 
     summary=msdrp.merge(plz_dist_weight,how='left')
     summary=summary.merge(plz_dist_car,how='left')
@@ -401,10 +522,13 @@ def combine_survey_data(city):
     sHPW.loc[sHPW['IncomeDetailed']=='Over5600','Income']=6000
 
     # plot car ownership by income 
-    hh_inc_car=pd.DataFrame(sHPW.groupby(['HHNR'])['Income','CarAvailable'].mean()).reset_index()
-    inc_car=hh_inc_car.groupby('Income')['CarAvailable'].mean().reset_index()
+    hh_inc_car=pd.DataFrame(sHPW.groupby(['HHNR'])['Income','CarOwnershipHH'].mean()).reset_index()
+    inc_car=hh_inc_car.groupby('Income')['CarOwnershipHH'].mean().reset_index()
+    inc_N=hh_inc_car.groupby('Income')['CarOwnershipHH'].count().reset_index()
+    inc_N.rename(columns={'CarOwnershipHH':'N_HH'},inplace=True)
+    inc_car=inc_car.merge(inc_N,on='Income')
     fig, ax = plt.subplots()
-    plt.plot(inc_car['Income'],100*inc_car['CarAvailable'])
+    plt.plot(inc_car['Income'],100*inc_car['CarOwnershipHH'])
     plt.title('Car Ownership by Income, '+city,fontsize=16)
     plt.xlabel('HH Income, EUR/month',fontsize=12)
     plt.ylabel('HH Car Ownership Rate (%)',fontsize=12)
@@ -553,7 +677,7 @@ def combine_survey_data(city):
     # print('Average speed by mode and distance category: ' + city)
     # print(round(sHPW.dropna(axis=0,subset='Trip_Speed').groupby(['Trip_Distance_Cat','Mode'])['Trip_Speed'].mean(),2))
 
-#cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
-cities=pd.Series(['Berlin','Dresden','Leipzig','Magdeburg','Potsdam']) # currently only cities with complete UF data
+cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
+#cities=pd.Series(['Potsdam']) # currently only cities with complete UF data
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_DE.csv',index=False)

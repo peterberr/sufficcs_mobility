@@ -138,8 +138,10 @@ sP.loc[sP['Age']<7,['Education','Occupation']]='Pre-School'
 sP.loc[(sP['Age']>11) & (sP['Age']<16) & (sP['Education'].isin(['No diploma yet','Unkown'])),'Education']="Elementary" # if aged between 12 and 15, assume at least an Elementary education
 sP.loc[(sP['Age']>15) & (sP['Age']<20) & (sP['Education'].isin(['No diploma yet','Unkown'])),'Education']="Secondary" # if aged between 16 and 19, assume at least a Secondary education.
 
+
 # drop unneccessary columns
-sW.drop(columns=['Ori_Reason','Des_Reason','HHNR','Person','Time','Hour'],inplace=True)
+#sW.drop(columns=['Ori_Reason','Des_Reason','HHNR','Person','Time','Hour'],inplace=True)
+sW.drop(columns=['HHNR','Person','Time','Hour'],inplace=True)
 sH.drop(columns=['BikeAvailable','2_3WAvailable','CarAvailable'],inplace=True)
 
 
@@ -155,9 +157,15 @@ sP['Per_Weight']=sP['Per_Weight'].map(lambda x: float(x.replace(',','.')))
 sHP=sH.merge(sP,on='HHNR')
 
 sHPW=sHP.merge(sW,on='HH_PNR')
+
+# make a generic variable for parking available at work/study destinations
+sHPW['ParkingAvailable_Dest']=0
+sHPW.loc[(sHPW['Des_Reason'].isin(['Work','School'])) & (sHPW['Work/Study_CarParkAvailable']==1) ,'ParkingAvailable_Dest']=1
+sHPW.drop(columns=['Ori_Reason','Des_Reason','Work/Study_CarParkAvailable'],inplace=True)
+
 # bring HHNR, HH_PNR, HH_P_WNR to the left side of the combined df
 cols=sHPW.columns.tolist()
-cols_new = ['HHNR','HH_PNR','HH_P_WNR','Postcode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose'] + [value for value in cols if value not in {'HHNR','HH_PNR','HH_P_WNR','Postcode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose','Mode', 'Trip_Distance'}] +['Mode', 'Trip_Distance']
+cols_new = ['HHNR','HH_PNR','HH_P_WNR','Res_geocode','Ori_geocode','Des_geocode','Trip_Time','Trip_Purpose'] + [value for value in cols if value not in {'HHNR','HH_PNR','HH_P_WNR','Res_geocode','Ori_geocode','Des_geocode','Trip_Time','Trip_Purpose','Mode', 'Trip_Distance'}] +['Mode', 'Trip_Distance']
 sHPW=sHPW[cols_new]
 
 # create a dictionary to map the old municipality ids to the new ones which took effect after the dissolution of the Bezirk Wien-Umgebung https://de.wikipedia.org/wiki/Bezirk_Wien-Umgebung
@@ -175,15 +183,15 @@ dict={'32403':'31949', # Gablits
 '32424':'30741' # Zwölfaxing
 }
 
-sHPW['Ori_Plz']=sHPW['Ori_Plz'].astype(str).replace(dict)
-sHPW['Des_Plz']=sHPW['Des_Plz'].astype(str).replace(dict)
-sHPW['Postcode']=sHPW['Postcode'].astype(str).replace(dict)
+sHPW['Ori_geocode']=sHPW['Ori_geocode'].astype(str).replace(dict)
+sHPW['Des_geocode']=sHPW['Des_geocode'].astype(str).replace(dict)
+sHPW['Res_geocode']=sHPW['Res_geocode'].astype(str).replace(dict)
 
 # load in dictionary of  geocodes, which we will use for merging with the urban form features
 with open('../dictionaries/city_postcode_AT.pkl','rb') as f:
     code_dict = pickle.load(f)
 # limit to trips starting within our definition of Wien
-sHPW=sHPW.loc[sHPW['Ori_Plz'].astype('str').isin(code_dict['Wien']),:]
+sHPW=sHPW.loc[sHPW['Ori_geocode'].astype('str').isin(code_dict['Wien']),:]
 
 # further cleaning to retrict the trips to those between 0.1km and 50km and remove trips w/o mode information
 sHPW['Trip_Distance']=sHPW.loc[:,'Trip_Distance']*1000
@@ -202,42 +210,149 @@ sHPW=sHPW.loc[~((sHPW['HH_PNR'].isin(double)) & (sHPW['ReportingDay']==2)) ,:]
 # classify moped as 2-3wheeler
 sHPW.loc[sHPW['Mode_Detailed']=='Moped','Mode']='2_3_Wheel'
 
-mode_share=sHPW.groupby('Mode')['Trip_Distance'].sum()/sum(sHPW.groupby('Mode')['Trip_Distance'].sum())
 weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]
 weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
-mode_share_weighted=weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sum(weighted.groupby('Mode')['Dist_Weighted_P'].sum())
 
-print('Weighted mode share in ' + city)
-print(mode_share_weighted)
+# weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sP['Per_Weight'].sum()).reset_index()
+# need to fix this, the distances don't make sense
+# weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sP['HH_PNR'].drop_duplicates()))).reset_index()
+weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates()))).reset_index()
+weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
+weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
-print('N Trips')
-print(len(sHPW))
+weight_daily_travel_all=pd.DataFrame(data={'Mode':['All'],'Daily_travel_all':0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()})
 
-print('Avg trip distance in km, overall: ', round(0.001*np.average(sHPW['Trip_Distance'],weights=sHPW['Trip_Weight']),1))
+carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
+weight_daily_travel=weight_daily_travel.merge(own,how='left')
+weight_daily_travel=weight_daily_travel.merge(weight_daily_travel_all,how='outer')
 
-person_trips=pd.DataFrame(sHPW.groupby('HH_PNR')['Trip_Distance'].sum()).reset_index()
-#print('Average travel distance per person per day, all modes, km/cap: ' , str(round(0.001*person_trips['Trip_Distance'].mean(),1)))
-print('Average travel distance per person per day, all modes, km/cap: ' , str(round(sum(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates()))),1)))
-0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates()))
+weight_daily_travel.to_csv('../outputs/summary_stats/'+city+'_stats.csv',index=False)
 
-person_mode_trips=pd.DataFrame(sHPW.groupby(['HH_PNR','Mode'])['Trip_Distance'].sum()).reset_index()
-print('Average travel distance per person per day, all modes, km/cap: ')
-#print(str(round(0.001*person_mode_trips.groupby('Mode')['Trip_Distance'].sum()/len(person_trips),2)))
-print(str(round(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates())),2)))
+# mode_share=sHPW.groupby('Mode')['Trip_Distance'].sum()/sum(sHPW.groupby('Mode')['Trip_Distance'].sum())
+# weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]
+# weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
+# mode_share_weighted=weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sum(weighted.groupby('Mode')['Dist_Weighted_P'].sum())
 
-if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(person_trips): 
+# print('Weighted mode share in ' + city)
+# print(mode_share_weighted)
+
+# print('N Trips')
+# print(len(sHPW))
+
+# print('Avg trip distance in km, overall: ', round(0.001*np.average(sHPW['Trip_Distance'],weights=sHPW['Trip_Weight']),1))
+
+# person_trips=pd.DataFrame(sHPW.groupby('HH_PNR')['Trip_Distance'].sum()).reset_index()
+# #print('Average travel distance per person per day, all modes, km/cap: ' , str(round(0.001*person_trips['Trip_Distance'].mean(),1)))
+# print('Average travel distance per person per day, all modes, km/cap: ' , str(round(sum(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates()))),1)))
+# 0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates()))
+
+# person_mode_trips=pd.DataFrame(sHPW.groupby(['HH_PNR','Mode'])['Trip_Distance'].sum()).reset_index()
+# print('Average travel distance per person per day, all modes, km/cap: ')
+# #print(str(round(0.001*person_mode_trips.groupby('Mode')['Trip_Distance'].sum()/len(person_trips),2)))
+# print(str(round(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates())),2)))
+
+
+if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(sHPW.loc[:,('HH_PNR')].drop_duplicates()):
     print('NB! Some respondents report trips over more than one day')
-
 # add trip speed and save
 
 #sHPW['Trip_Speed']=round(60*0.001*sHPW['Trip_Distance']/(sHPW['Trip_Duration']),2) # in km/hr
 sHPW.to_csv('../outputs/Combined/Wien.csv',index=False,encoding='utf-8-sig')
 
+# load in UF stats
+# population density
+pop_dens=pd.read_csv('../outputs/density_geounits/' + city + '_pop_density.csv',dtype={'geocode':str})
+pop_dens.drop(columns=['geometry','NAME','state','Population','area'],inplace=True)
+# building density and distance to city center, here plz needs to change to geocode
+bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'geocode':str})
+bld_dens.drop(columns=['wgt_center'],inplace=True)
+# connectivity stats
+conn=pd.read_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',dtype={'geocode':str})
+# decide which connectivity stats we want to keep
+conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg')]
+
+# land-use
+lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'geocode':str})
+# decide which lu varibales to use
+lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
+
+# now merge all urban form features with the survey data.
+
+# population density origin
+sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_geocode',right_on='geocode').copy()
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'Density':'PopDensity_origin'},inplace=True)
+# population density destination
+sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'Density':'PopDensity_res'},inplace=True)
+
+# buidling density and distance to centers origin
+sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_origin','Distance2Center':'DistCenter_origin','build_vol_density':'BuildDensity_origin'},inplace=True)
+# buidling density and distance to centers destination
+sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_res','Distance2Center':'DistCenter_res','build_vol_density':'BuildDensity_res'},inplace=True)
+
+# connectivity stats, origin
+sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'k_avg':'K_avg_origin','clean_intersection_density_km':'IntersecDensity_origin','street_density_km':'StreetDensity_origin',
+'streets_per_node_avg':'StreetsPerNode_origin','street_length_avg':'StreetLength_origin'},inplace=True)
+
+# connectivity stats, destination
+sHPW_UF=sHPW_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'k_avg':'K_avg_res','clean_intersection_density_km':'IntersecDensity_res','street_density_km':'StreetDensity_res',
+'streets_per_node_avg':'StreetsPerNode_res','street_length_avg':'StreetLength_res'},inplace=True)
+
+# land-use stats, origin
+sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_origin','pc_comm':'LU_Comm_origin','pc_road':'LU_Road_origin',
+'pc_urban':'LU_Urban_origin'},inplace=True)
+
+# land-use stats, destination
+sHPW_UF=sHPW_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res','pc_road':'LU_Road_res',
+'pc_urban':'LU_Urban_res'},inplace=True)
+
+# recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
+# sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_UrbFab_origin']
+# sHPW_UF['UrbPopDensity_res']=sHPW_UF['PopDensity_res']/sHPW_UF['LU_UrbFab_res']
+sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_Urban_origin']
+sHPW_UF['UrbPopDensity_res']=sHPW_UF['PopDensity_res']/sHPW_UF['LU_Urban_res']
+
+sHPW_UF['UrbBuildDensity_origin']=sHPW_UF['BuildDensity_origin']/sHPW_UF['LU_Urban_origin']
+sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res']
+
+sHPW_UF.loc[sHPW_UF['Time2Transit']<0,'Time2Transit']=np.nan
+mean_time_tran=pd.DataFrame(sHPW_UF[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['Time2Transit'].mean()).reset_index()
+mean_time_tran.rename(columns={'Time2Transit':'MeanTime2Transit'},inplace=True)
+
+# mean time to transit, origin
+sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Ori_geocode',right_on='Res_geocode').copy() 
+sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
+sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_origin','Res_geocode_x':'Res_geocode'},inplace=True)
+
+# mean time to transit, destination
+# sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Des_geocode',right_on='Res_geocode').copy() 
+# sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
+# sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_dest','Res_geocode_x':'Res_geocode'},inplace=True)
+sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Res_geocode',right_on='Res_geocode').copy() 
+sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_res'},inplace=True)
+
+sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
+
 # create the ori_geo_unit based on the municipalities
 
-sHPW['Ori_geo_unit']=sHPW['Ori_Plz']
+sHPW['Ori_geo_unit']=sHPW['Ori_geocode']
 
-sHPW['geo_unit']=sHPW['Postcode']
+sHPW['geo_unit']=sHPW['Res_geocode']
 
 # now create and save some summary stats by postcode
 sHPW['Trip_Distance_Weighted']=sHPW['Trip_Distance']*sHPW['Trip_Weight']
