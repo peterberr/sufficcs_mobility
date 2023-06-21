@@ -1,3 +1,4 @@
 /outputs/Combined/
 /shapefiles/*
 *__pycache__/
+*/cache/
