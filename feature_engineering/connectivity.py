@@ -30,13 +30,13 @@ a_file = open(city_plz_fp, "rb")
 city_plz_dict = pickle.load(a_file)
 
 # select connectivity stats of interest
-metrics=['n','m','k_avg','intersection_density_km','clean_intersection_density_km','node_density_km','street_density_km','streets_per_node_avg','street_length_avg']
+metrics=['n','m','k_avg','intersection_density_km','clean_intersection_density_km','street_length_total','street_density_km','streets_per_node_avg','street_length_avg']
 # n: count of nodes in graph
 # m: count edges in graph
 # k-avg:  graph’s average node degree (in-degree and out-degree)
 # intersection_density_km: intersection_count per sq km
 # clean_intersection_density_km: clean_intersection_count per sq km
-# node_density_km - n per sq km
+# street_length_total -total street lenght in graph
 # street_density_km - street_length_total per sq km
 # streets_per_node_avg: average count of streets per node
 # street_length_avg: average street length = street_length_total / street_segment_count
@@ -52,10 +52,9 @@ def network_plz(city_plz,metrics,nw_type,op):
 
         poly = city_plz.iloc[i].geometry
         try:
-            graph_plz=ox.graph_from_polygon(poly,simplify=True,network_type=nw_type)
+            graph_plz=ox.graph_from_polygon(poly,simplify=True,network_type=nw_type,retain_all=True)
             graph_proj=ox.project_graph(graph_plz)
-            # Get Edges and Nodes
-            nodes_proj, edges_proj = ox.graph_to_gdfs(graph_proj, nodes=True, edges=True)
+
             # get area
             graph_area=city_plz.loc[i,'geom_area']
 
@@ -70,6 +69,18 @@ def network_plz(city_plz,metrics,nw_type,op):
             # intersection node density. calculated as average node degree * nodes / area = total edges / area, where a single two-way street is counted as two edges. in other words the total nodal degree over the whole area.
             # calculated based on the description in section 2.3 of the SI of Stokes and Seto (2019) doi.org/10.1088/1748-9326/aafab8
             op.iloc[i,10]=stats['k_avg']*stats['n']/graph_area
+
+            # bike lane share, calculated as a share of drive lane length, if there are any bike lanes
+            cf = '["cycleway"]'
+            # this might throw an error if no graph is found within the polygon
+            graph_bike = ox.graph_from_polygon(poly, custom_filter=cf,retain_all=True)
+            if len(graph_bike.edges)>0:
+                graph_proj2=ox.project_graph(graph_bike)
+                stats = ox.basic_stats(graph_proj2,area=graph_area,clean_int_tol=10)
+                stats2=dict((k, stats[k]) for k in metrics if k in stats)
+                op.iloc[i,11]=round(stats2['street_length_total']/stats1['street_length_total'],4)
+            else:
+                op.iloc[i,11]=0
         except:
             print('Graph error')
 
@@ -81,14 +92,10 @@ def conn(city):
 
     country=countries[cities_all.index(city)]
 	# # 1. Read in boundaries
-    # fp='../outputs/city_boundaries/' + city + '.csv'
-    # gdf_boundary = import_csv_w_wkt_to_gdf(fp,crs=crs0,geometry_col='geometry')
-
-    # gdf_boundary = gdf_boundary.to_crs(crs_osm)
-    # load in dataframe of city streets network using driveable streets only
-    #city_streets = ox.graph_from_polygon(gdf_boundary.iloc[0].geometry,simplify=True,network_type='drive') 
 
     if country=='Germany':
+        # set the osmnx date configuration for German cities as end of 2018
+        ox.config(overpass_settings='[out:json][timeout:90][date:"2018-12-31T23:59:00Z"]')
         fp = "../shapefiles/plz-5stellig.shp/plz-5stellig.shp"
         de_plz = gpd.read_file(fp)
 
@@ -100,33 +107,23 @@ def conn(city):
             city_poly.rename(columns={'plz':'geocode'},inplace=True)
 
     elif city =='Wien':
+        # set the osmnx date configuration for Wien as end of 2014
+        ox.config(overpass_settings='[out:json][timeout:90][date:"2014-12-31T23:59:00Z"]')
         fp = '../outputs/density_geounits/'+city+'_pop_density.csv'
         city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
 
+
     elif city =='Madrid':
+        # set the osmnx date configuration for Madrid as end of 2018
+        ox.config(overpass_settings='[out:json][timeout:90][date:"2018-12-31T23:59:00Z"]')
         fp = '../outputs/density_geounits/'+city+'_pop_density_mixres.csv'
         city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
     
     else:
-        # if city == 'Paris':
-        #     fp = '../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
-        # elif city == 'Wien':
-        #     fp = '../outputs/density_geounits/'+city+'_pop_density.csv'
-        # else:
-        #     fp = '../outputs/density_geounits/'+city+'_pop_density_mixres.csv'
-        
-        # if city == 'Paris':
-        #     #fp = '../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
-        #     fp = '../outputs/density_geounits/'+city+'_pop_density_lowres_large.csv'
-        #     city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geo_unit')
-        # elif city =='Wien':
-        #     fp = '../outputs/density_geounits/'+city+'_pop_density.csv'
-        #     city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
-        # else:
-        #     #fp = '../outputs/density_geounits/'+city+'_pop_density_mixres.csv'
-        #     city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
-
         if city=='Montpellier':
+            # set the osmnx date configuration for Montpellier as end of 2014
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2014-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_Zones fines.mid'
             gdf_hi=gpd.read_file(fp)
             # boundary of gdf is set below for Montpellier
@@ -145,6 +142,9 @@ def conn(city):
             gdf_hi.rename(columns={'NUM_ZF_2013':'geocode'},inplace=True)
 
         if city=='Clermont':
+            # set the osmnx date configuration for Montpellier as end of 2013 (even though survey is from 2012. But older data is less reliable from osm/osmnx)
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2013-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-0924_Clermont.csv/Doc/SIG/EDGT Clermont2012_DTIR.mid'
             gdf_hi=gpd.read_file(fp)
             gdf_hi.to_crs(crs0,inplace=True)
@@ -161,6 +161,9 @@ def conn(city):
             gdf_hi.rename(columns={'DFIN':'geocode'},inplace=True)
 
         if city=='Lyon': # think i use the .tab file https://stackoverflow.com/questions/22218069/how-to-load-mapinfo-file-into-geopandas for mapinfo gis file
+            # set the osmnx date configuration for Lyon as end of 2015 
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2015-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_ZF_GT.TAB'
             gdf_hi=gpd.read_file(fp)
             # restrict to D12 zones 01 to 04 (DTIR<258), these are sufficiently close to the center of Lyon, and combined make up an area of 841km2 (quite largr).
@@ -175,6 +178,9 @@ def conn(city):
             gdf_hi.rename(columns={'ZF2015_Nouveau_codage':'geocode'},inplace=True)
         
         if city=='Toulouse':
+            # set the osmnx date configuration for Toulouse as end of 2013 
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2013-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-0933_Toulouse.csv/Doc/SIG/ZONE_FINE_EMD2013_FINAL4.mid' # hires gdf_hi
             gdf_hi=gpd.read_file(fp)
             gdf_hi.to_crs(crs0,inplace=True)
@@ -189,6 +195,9 @@ def conn(city):
             gdf_hi.rename(columns={'ZF_SEC_EMD2013':'geocode'},inplace=True)
 
         if city=='Nantes': 
+            # set the osmnx date configuration for Nantes as end of 2015
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2015-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_ZF.TAB'
             gdf_hi=gpd.read_file(fp)
             # restrict to Nantes Metropole
@@ -201,6 +210,9 @@ def conn(city):
             gdf_hi.rename(columns={'Id_zf_cerema':'geocode'},inplace=True)
 
         if city=='Nimes':
+            # set the osmnx date configuration for Nimes as end of 2015
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2015-12-31T23:59:00Z"]')
+            
             fp='../../MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_ZF.TAB'
             gdf_hi=gpd.read_file(fp)
             # restrict to Nimes city, which covers dtir 1-20. This is small (161km2). Could optionally extend to Communauté d'agglomération Nîmes Métropole, but that would leave us with a very low density (326/km2) and it is questionable whether that area is 'city'
@@ -213,6 +225,9 @@ def conn(city):
             gdf_hi.rename(columns={'NUM_ZF_2013':'geocode'},inplace=True)
 
         if city=='Dijon':
+            # set the osmnx date configuration for Dijon as end of 2016
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2016-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_ZF.TAB'
             gdf_hi=gpd.read_file(fp)
             # restrict  to the Ville de Dijon and Grand Dijon hypercentre, which covers dtir 1-20. These all had face to face interviews.
@@ -225,6 +240,9 @@ def conn(city):
             gdf_hi.rename(columns={'NUM_ZF':'geocode'},inplace=True)
 
         if city=='Lille':
+            # set the osmnx date configuration for Lille as end of 2016
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2016-12-31T23:59:00Z"]')
+
             fp='../../MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_ZF.TAB'
             gdf_hi=gpd.read_file(fp)
             # restrict to the métropole européenne de lille, which covers the French part of the eurumetripole, and includes also the cities of Tourcoing and Roubaix.
@@ -238,6 +256,9 @@ def conn(city):
             gdf_hi.rename(columns={'ZFIN2016F':'geocode'},inplace=True)
 
         if city == 'Paris':
+            # set the osmnx date configuration for Paris as end of 2013 (even though survey is from 2010. But older data is less reliable from osm/osmnx)
+            ox.config(overpass_settings='[out:json][timeout:90][date:"2013-12-31T23:59:00Z"]')
+
             fp = '../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
             gdf_hi=import_csv_w_wkt_to_gdf(fp,crs0,gc='geo_unit')
             gdf_hi.rename(columns={'geo_unit':'geocode'},inplace=True)
@@ -263,11 +284,16 @@ def conn(city):
          
     op=city_poly.loc[:, ['geocode']].copy()
     op[metrics]=np.nan
+    # add in the 2 custom metrics of intersection node density and bike lane share
     op['int_node_dens']=np.nan 
+    op['bike_lane_share']=np.nan
 
+    print(city, ox.settings.overpass_settings)
     op2=network_plz(city_poly,metrics=metrics,nw_type='drive',op=op)
 
     op2.to_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',index=False)
 
-cities=pd.Series(cities_all)
+#cities=pd.Series(cities_all)
+cities=pd.Series(['Wien'])
+
 cities.apply(conn) 
