@@ -1,5 +1,5 @@
 # script to calculate location of subcenters, and distances from postcodes to center and subcenters in French cities, Madrid, and Wien
-# last update Peter Berrill June 6 2023
+# last update Peter Berrill July 13 2023
 
 import pandas as pd
 import geopandas as gpd
@@ -536,7 +536,7 @@ def subcenters(city):
         gdf=gpd.read_file(fp)
         gdf.to_crs(crs0,inplace=True)
 
-        fp2='../../madrid/EDM2018/ZonificacionZT208-shp/ZonificacionZT208.shp'
+        fp2='../../MSCA_data/madrid/EDM2018/ZonificacionZT208-shp/ZonificacionZT208.shp'
         gdf2=gpd.read_file(fp2)
         gdf2.to_crs(crs0,inplace=True)
         gdf2['Municipality']= [elem.split('-')[0] for elem in gdf2.ZT208]
@@ -578,6 +578,7 @@ def subcenters(city):
     gdf_hires=gdf_hi.loc[:,['geocode','geometry','area']]
 
     # redo from here with the highres spatial units instead of mixed res, i.e. with gdf_hires instead of gdf_hires
+    print('highres')
 
     # spatial join the geodataframe containing building volumes/areas by 100m grid cells with the polygons of postcodes
     jn4=gpd.sjoin(grid_100,gdf_hires,how="left",predicate="intersects")
@@ -683,5 +684,7 @@ def subcenters(city):
 
     print('Finished calculating center and subcenters for ' + city)
 
-cities=pd.Series(['Dijon','Clermont','Lille','Nantes','Toulouse','Nimes','Lyon','Montpellier','Paris','Madrid','Wien'])
+#cities=pd.Series(['Dijon','Clermont','Lille','Nantes','Toulouse','Nimes','Lyon','Montpellier','Paris','Madrid','Wien'])
+cities=pd.Series(['Madrid'])
+
 cities.apply(subcenters)

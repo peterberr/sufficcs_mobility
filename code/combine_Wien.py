@@ -138,12 +138,10 @@ sP.loc[sP['Age']<7,['Education','Occupation']]='Pre-School'
 sP.loc[(sP['Age']>11) & (sP['Age']<16) & (sP['Education'].isin(['No diploma yet','Unkown'])),'Education']="Elementary" # if aged between 12 and 15, assume at least an Elementary education
 sP.loc[(sP['Age']>15) & (sP['Age']<20) & (sP['Education'].isin(['No diploma yet','Unkown'])),'Education']="Secondary" # if aged between 16 and 19, assume at least a Secondary education.
 
-
 # drop unneccessary columns
 #sW.drop(columns=['Ori_Reason','Des_Reason','HHNR','Person','Time','Hour'],inplace=True)
 sW.drop(columns=['HHNR','Person','Time','Hour'],inplace=True)
 sH.drop(columns=['BikeAvailable','2_3WAvailable','CarAvailable'],inplace=True)
-
 
 # convert comma decimal points to points
 sW['Trip_Distance']=sW['Trip_Distance'].map(lambda x: round(float(x.replace(',','.')),2))
@@ -570,8 +568,3 @@ plt.xticks(rotation=45,fontsize=12,ha='right',rotation_mode='anchor')
 
 fig.suptitle("Trip Mode by Purpose & Distance, " + city, fontsize=22,y=0.95)
 fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
-
-# # calcuate trip speeds and summarize by mode and distance
-# sHPW.replace([np.inf, -np.inf], np.nan, inplace=True)
-# print('Average speed by mode and distance category: ' + city)
-# round(sHPW.dropna(axis=0,subset='Trip_Speed').groupby(['Trip_Distance_Cat','Mode'])['Trip_Speed'].mean(),2)

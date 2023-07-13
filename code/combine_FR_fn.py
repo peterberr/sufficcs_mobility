@@ -426,9 +426,6 @@ def combine_survey_data(city):
 
     sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
 
-    # with open('../dictionaries/' + city + '_mixed_geocode.pkl','rb') as f:
-    #     code_dict = pickle.load(f)
-
     # now create and save some summary stats by postcode
     sHPW['Trip_Distance_Weighted']=sHPW['Trip_Distance']*sHPW['Per_Weight']
 
@@ -476,7 +473,7 @@ def combine_survey_data(city):
     summary=summary.merge(plz_hh_car)
     summary.to_csv('../outputs/summary_geounits/'+city+'.csv',index=False)
 
-    # mode share of trip distance by GEOUNIT
+    # mode share of trip distance by GEOUNIT, i.e. low resolution
     ms_dist_all_res=pd.DataFrame(sHPW.groupby(['Res_geo_unit'])['Trip_Distance_Weighted'].sum())
     ms_dist_all_res.reset_index(inplace=True)
     ms_dist_all_res.rename(columns={'Trip_Distance_Weighted':'Trip_Distance_All'},inplace=True)

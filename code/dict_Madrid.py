@@ -53,7 +53,6 @@ value_dict_W={'HHNR': {}, 'Person': {},'Trip':{},
 
 na_dict_W={'Mode':'Other','Trip_Purpose0':'Other'}
 
-
 # Combine variable, value, and na dictionaries
 var_all = {'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
 value_all = {'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W}
