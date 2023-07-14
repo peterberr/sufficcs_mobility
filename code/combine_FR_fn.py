@@ -286,6 +286,7 @@ def combine_survey_data(city):
     sHPW['Des_geocode']=sHPW['Des_Sec_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string")
     sHPW['Res_geocode']=sHPW['Sector_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") 
 
+    # these are the highest resolution geo ids, and are used to merge with hi-res connectivity and distance urban form features
     sHPW['Ori_Sec_Zone']=sHPW['Ori_Sec_Zone'].astype("string").str.zfill(6)
     sHPW['Des_Sec_Zone']=sHPW['Des_Sec_Zone'].astype("string").str.zfill(6)
     sHPW['Res_Sec_Zone']=sHPW['Sector_Zone'].astype("string").str.zfill(6)
@@ -333,12 +334,13 @@ def combine_survey_data(city):
     # building density and distance to city center
     bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'geocode':str})
     bld_dens.drop(columns=['wgt_center','minDist_subcenter','Distance2Center'],inplace=True)
-    d2=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'geocode':str})
+    d2=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist_hires.csv',dtype={'geocode':str})
     d2.drop(columns=['wgt_center','build_vol_density'],inplace=True)
-    # connectivity stats
+    # connectivity stats, defined at high resolution
     conn=pd.read_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',dtype={'geocode':str})
     # decide which connectivity stats we want to keep
-    conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg','streets_per_node_avg')]
+    conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg','streets_per_node_avg','bike_lane_share')]
+    conn['bike_lane_share']=conn['bike_lane_share'].fillna(0)
 
     # land-use
     lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'geocode':str})
@@ -350,22 +352,15 @@ def combine_survey_data(city):
     sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_geocode',right_on='geocode').copy()
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'Density':'PopDensity_origin'},inplace=True)
-    # population density destination
-    sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Des_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
-    sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'Density':'PopDensity_dest'},inplace=True)
     # population density residential
     sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy()
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'Density':'PopDensity_res'},inplace=True)
+
     # buidling density origin
     sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_geocode',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'build_vol_density':'BuildDensity_origin'},inplace=True)
-    # buidling density  destination
-    sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Des_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
-    sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'build_vol_density':'BuildDensity_dest'},inplace=True)
     # buidling density residential
     sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
     sHPW_UF.drop(columns='geocode',inplace=True)
@@ -375,31 +370,39 @@ def combine_survey_data(city):
     sHPW_UF=sHPW_UF.merge(d2,left_on='Ori_Sec_Zone',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_origin','Distance2Center':'DistCenter_origin'},inplace=True)
-    # d2 destination
-    sHPW_UF=sHPW_UF.merge(d2,left_on='Des_Sec_Zone',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
-    sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_dest','Distance2Center':'DistCenter_dest'},inplace=True)
     # d2residential
     sHPW_UF=sHPW_UF.merge(d2,left_on='Res_Sec_Zone',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_res','Distance2Center':'DistCenter_res'},inplace=True)
 
+    # # connectivity stats, origin
+    # sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_Sec_Zone',right_on='geocode').copy() 
+    # sHPW_UF.drop(columns='geocode',inplace=True)
+    # sHPW_UF.rename(columns={'k_avg':'K_avg_origin','clean_intersection_density_km':'IntersecDensity_origin','street_density_km':'StreetDensity_origin',
+    # 'streets_per_node_avg':'StreetsPerNode_origin','street_length_avg':'StreetLength_origin'},inplace=True)
+
+    # # connectivity stats, res
+    # sHPW_UF=sHPW_UF.merge(conn,left_on='Res_Sec_Zone',right_on='geocode').copy() 
+    # sHPW_UF.drop(columns='geocode',inplace=True)
+    # sHPW_UF.rename(columns={'k_avg':'K_avg_dest','clean_intersection_density_km':'IntersecDensity_res','street_density_km':'StreetDensity_res',
+    # 'streets_per_node_avg':'StreetsPerNode_res','street_length_avg':'StreetLength_res'},inplace=True)
+
     # connectivity stats, origin
     sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_Sec_Zone',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'k_avg':'K_avg_origin','clean_intersection_density_km':'IntersecDensity_origin','street_density_km':'StreetDensity_origin',
-    'streets_per_node_avg':'StreetsPerNode_origin','street_length_avg':'StreetLength_origin'},inplace=True)
-    # connectivity stats, destination
-    sHPW_UF=sHPW_UF.merge(conn,left_on='Des_Sec_Zone',right_on='geocode').copy() 
-    sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'k_avg':'K_avg_dest','clean_intersection_density_km':'IntersecDensity_dest','street_density_km':'StreetDensity_dest',
-    'streets_per_node_avg':'StreetsPerNode_dest','street_length_avg':'StreetLength_dest'},inplace=True)
-    # connectivity stats, res
+    sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_origin',
+                            'street_length_avg':'street_length_origin',
+                            'streets_per_node_avg':'streets_per_node_origin',
+                            'bike_lane_share':'bike_lane_share_origin'},inplace=True)
+
+    # connectivity stats, residential
     sHPW_UF=sHPW_UF.merge(conn,left_on='Res_Sec_Zone',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'k_avg':'K_avg_dest','clean_intersection_density_km':'IntersecDensity_res','street_density_km':'StreetDensity_res',
-    'streets_per_node_avg':'StreetsPerNode_res','street_length_avg':'StreetLength_res'},inplace=True)
-   
+    sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_res',
+                            'street_length_avg':'street_length_res',
+                            'streets_per_node_avg':'streets_per_node_res',
+                            'bike_lane_share':'bike_lane_share_res'},inplace=True)
+    
     # land-use stats, origin
     sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_geocode',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
@@ -417,11 +420,9 @@ def combine_survey_data(city):
     'pc_urban':'LU_Urban_res'},inplace=True)
 
     sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_Urban_origin']
-    sHPW_UF['UrbPopDensity_dest']=sHPW_UF['PopDensity_dest']/sHPW_UF['LU_Urban_dest']
     sHPW_UF['UrbPopDensity_res']=sHPW_UF['PopDensity_res']/sHPW_UF['LU_Urban_res']
 
     sHPW_UF['UrbBuildDensity_origin']=sHPW_UF['BuildDensity_origin']/sHPW_UF['LU_Urban_origin']
-    sHPW_UF['UrbBuildDensity_dest']=sHPW_UF['BuildDensity_dest']/sHPW_UF['LU_Urban_dest']
     sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res']
 
     sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
@@ -708,7 +709,6 @@ def combine_survey_data(city):
 
 
 
-cities=pd.Series(['Montpellier','Lyon','Nantes','Nimes','Lille','Dijon'])
-#cities=pd.Series(['Clermont','Toulouse'])
+cities=pd.Series(['Clermont','Toulouse','Montpellier','Lyon','Nantes','Nimes','Lille','Dijon'])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
-#inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)
+inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)

@@ -684,7 +684,5 @@ def subcenters(city):
 
     print('Finished calculating center and subcenters for ' + city)
 
-#cities=pd.Series(['Dijon','Clermont','Lille','Nantes','Toulouse','Nimes','Lyon','Montpellier','Paris','Madrid','Wien'])
-cities=pd.Series(['Madrid'])
-
+cities=pd.Series(['Dijon','Clermont','Lille','Nantes','Toulouse','Nimes','Lyon','Montpellier','Paris','Madrid','Wien'])
 cities.apply(subcenters)

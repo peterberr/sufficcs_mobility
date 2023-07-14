@@ -116,8 +116,11 @@ def conn(city):
     elif city =='Madrid':
         # set the osmnx date configuration for Madrid as end of 2018
         ox.config(overpass_settings='[out:json][timeout:90][date:"2018-12-31T23:59:00Z"]')
-        fp = '../outputs/density_geounits/'+city+'_pop_density_mixres.csv'
-        city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
+        # for Madrid there was some decision required regarding whether to calc conn stats at high or mixed res. now i do it high res, consistent with FR cities outside Paris
+        fp = '../outputs/density_geounits/'+city+'_pop_density_highres.csv' 
+        city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geo_unit_highres')
+        city_poly['geocode']=city_poly['geo_unit_highres'].astype('str')
+        city_poly.drop(columns='geo_unit_highres',inplace=True)
     
     else:
         if city=='Montpellier':
@@ -270,7 +273,10 @@ def conn(city):
             city_poly.rename(columns={'geo_unit':'geocode'},inplace=True)
         city_poly['geocode']=city_poly['geocode'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
 
-    fp='../outputs/CenterSubcenter/'+city+'_dist.csv'
+    if (country in ['Germany','Austria']) | (city=='Paris'):
+        fp='../outputs/CenterSubcenter/'+city+'_dist.csv'
+    else:
+        fp='../outputs/CenterSubcenter/'+city+'_dist_hires.csv'
     dists=import_csv_w_wkt_to_gdf(fp,crs=3035,geometry_col='wgt_center',gc='geocode')
     dists['catch']=dists.geometry.buffer(1250)
     dists['geocode']=dists['geocode'].astype(str)
@@ -288,12 +294,12 @@ def conn(city):
     op['int_node_dens']=np.nan 
     op['bike_lane_share']=np.nan
 
-    print(city, ox.settings.overpass_settings)
+    print(city, len(op), ox.settings.overpass_settings)
     op2=network_plz(city_poly,metrics=metrics,nw_type='drive',op=op)
 
     op2.to_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',index=False)
 
 #cities=pd.Series(cities_all)
-cities=pd.Series(['Wien'])
+cities=pd.Series(['Madrid'])
 
 cities.apply(conn) 

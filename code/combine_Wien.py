@@ -268,7 +268,8 @@ bld_dens.drop(columns=['wgt_center'],inplace=True)
 # connectivity stats
 conn=pd.read_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',dtype={'geocode':str})
 # decide which connectivity stats we want to keep
-conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg')]
+conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg','streets_per_node_avg','bike_lane_share')]
+conn['bike_lane_share']=conn['bike_lane_share'].fillna(0)
 
 # land-use
 lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'geocode':str})
@@ -298,14 +299,18 @@ sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_res','Distance2Center
 # connectivity stats, origin
 sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_geocode',right_on='geocode').copy() 
 sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'k_avg':'K_avg_origin','clean_intersection_density_km':'IntersecDensity_origin','street_density_km':'StreetDensity_origin',
-'streets_per_node_avg':'StreetsPerNode_origin','street_length_avg':'StreetLength_origin'},inplace=True)
+sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_origin',
+                        'street_length_avg':'street_length_origin',
+                        'streets_per_node_avg':'streets_per_node_origin',
+                        'bike_lane_share':'bike_lane_share_origin'},inplace=True)
 
-# connectivity stats, destination
+# connectivity stats, residential
 sHPW_UF=sHPW_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
 sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'k_avg':'K_avg_res','clean_intersection_density_km':'IntersecDensity_res','street_density_km':'StreetDensity_res',
-'streets_per_node_avg':'StreetsPerNode_res','street_length_avg':'StreetLength_res'},inplace=True)
+sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_res',
+                        'street_length_avg':'street_length_res',
+                        'streets_per_node_avg':'streets_per_node_res',
+                        'bike_lane_share':'bike_lane_share_res'},inplace=True)
 
 # land-use stats, origin
 sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_geocode',right_on='geocode').copy() 
@@ -313,7 +318,7 @@ sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_origin','pc_comm':'LU_Comm_origin','pc_road':'LU_Road_origin',
 'pc_urban':'LU_Urban_origin'},inplace=True)
 
-# land-use stats, destination
+# land-use stats, residential
 sHPW_UF=sHPW_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
 sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res','pc_road':'LU_Road_res',
@@ -337,19 +342,14 @@ sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Ori_geocode',right_on='Res_geocode
 sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
 sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_origin','Res_geocode_x':'Res_geocode'},inplace=True)
 
-# mean time to transit, destination
-# sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Des_geocode',right_on='Res_geocode').copy() 
-# sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
-# sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_dest','Res_geocode_x':'Res_geocode'},inplace=True)
+# mean time to transit, residential
 sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Res_geocode',right_on='Res_geocode').copy() 
 sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_res'},inplace=True)
 
 sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
 
 # create the ori_geo_unit based on the municipalities
-
 sHPW['Ori_geo_unit']=sHPW['Ori_geocode']
-
 sHPW['geo_unit']=sHPW['Res_geocode']
 
 # now create and save some summary stats by postcode
