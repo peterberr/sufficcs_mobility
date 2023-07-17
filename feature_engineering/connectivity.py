@@ -299,7 +299,6 @@ def conn(city):
 
     op2.to_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',index=False)
 
-#cities=pd.Series(cities_all)
-cities=pd.Series(['Madrid'])
+cities=pd.Series(cities_all)
 
 cities.apply(conn) 

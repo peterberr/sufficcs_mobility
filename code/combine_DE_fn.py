@@ -207,7 +207,8 @@ def combine_survey_data(city):
     # connectivity stats
     conn=pd.read_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',dtype={'geocode':str})
     # decide which connectivity stats we want to keep
-    conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg','streets_per_node_avg')]
+    conn=conn.loc[:,('geocode','clean_intersection_density_km','street_length_avg','streets_per_node_avg','bike_lane_share')]
+    conn['bike_lane_share']=conn['bike_lane_share'].fillna(0)
    
     # land-use
     lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'geocode':str})
@@ -220,10 +221,7 @@ def combine_survey_data(city):
     sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_Plz',right_on='geocode').copy()
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'Density':'PopDensity_origin'},inplace=True)
-    # population density destination
-    # sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Des_Plz',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
-    # sHPW_UF.drop(columns='geocode',inplace=True)
-    # sHPW_UF.rename(columns={'Density':'PopDensity_dest'},inplace=True)
+    # population density residential
     sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'Density':'PopDensity_res'},inplace=True)
@@ -243,17 +241,17 @@ def combine_survey_data(city):
     # connectivity stats, origin
     sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_Plz',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'k_avg':'K_avg_origin','clean_intersection_density_km':'IntersecDensity_origin','street_density_km':'StreetDensity_origin',
-    'streets_per_node_avg':'StreetsPerNode_origin','street_length_avg':'StreetLength_origin'},inplace=True)
-    # connectivity stats, destination
-    # sHPW_UF=sHPW_UF.merge(conn,left_on='Des_Plz',right_on='geocode').copy() 
-    # sHPW_UF.drop(columns='geocode',inplace=True)
-    # sHPW_UF.rename(columns={'k_avg':'K_avg_dest','clean_intersection_density_km':'IntersecDensity_dest','street_density_km':'StreetDensity_dest',
-    # 'streets_per_node_avg':'StreetsPerNode_dest','street_length_avg':'StreetLength_dest'},inplace=True)
+    sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_origin',
+                            'street_length_avg':'street_length_origin',
+                            'streets_per_node_avg':'streets_per_node_origin',
+                            'bike_lane_share':'bike_lane_share_origin'},inplace=True)
+    # connectivity stats, residential
     sHPW_UF=sHPW_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'k_avg':'K_avg_res','clean_intersection_density_km':'IntersecDensity_res','street_density_km':'StreetDensity_res',
-    'streets_per_node_avg':'StreetsPerNode_res','street_length_avg':'StreetLength_res'},inplace=True)
+    sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_res',
+                            'street_length_avg':'street_length_res',
+                            'streets_per_node_avg':'streets_per_node_res',
+                            'bike_lane_share':'bike_lane_share_res'},inplace=True)
 
     # land-use stats, origin
     sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_Plz',right_on='geocode').copy() 
@@ -407,7 +405,6 @@ def combine_survey_data(city):
     sH2_UF.drop(columns='geocode',inplace=True)
     sH2_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab','pc_comm':'LU_Comm','pc_road':'LU_Road',
     'pc_urban':'LU_Urban'},inplace=True)
-
 
     # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
     sH2_UF['UrbPopDensity']=sH2_UF['PopDensity']/sH2_UF['LU_Urban']

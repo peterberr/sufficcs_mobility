@@ -6,3 +6,6 @@
 /dev/
 /old/
 /code/test*
+/manuscript/*
+/outputs/ML_Results/result_figures/*
+/outputs/ML_Results/shap/*
