@@ -82,7 +82,7 @@ def mode_model(city):
             'HHSize','IncomeDetailed_Numeric', #'IncomeDetailed', 'HHType', # household details
             'Sex', 'MobilityConstraints', 'Occupation', 'Education','Age', # personal details, only use age for now, not age group, check later what works beter
             'UrbPopDensity_origin','DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin','MeanTime2Transit_origin',# 'DistSubcenter_dest', 'DistCenter_dest'
-            'IntersecDensity_origin', 'street_length_origin','bike_lane_share_origin', # 'K_avg_origin', 'StreetDensity_origin', 'StreetsPerNode_origin', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
+            'IntersecDensity_origin', 'street_length_origin','bike_lane_share_origin', # 'diff', 'K_avg_origin', 'StreetDensity_origin', 'StreetsPerNode_origin', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
             'LU_UrbFab_origin','LU_Comm_origin',    # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest',
             # target: mode
             'Mode')
@@ -210,7 +210,6 @@ def mode_model(city):
     shap_values2= pd.DataFrame()
     shap_values3= pd.DataFrame()
 
-
     model = XGBClassifier(
         max_depth=md_parameter_all, 
         n_estimators=n_parameter_all, 
@@ -302,7 +301,7 @@ def mode_model(city):
         'IntersecDensity_origin':'Intersection density','LU_Comm_origin':'Commercial area','LU_UrbFab_origin':'Urban Fabric area','street_length_origin':'Avg. street length','bike_lane_share_origin':'Cycle lanes',
         'Trip_Purpose_Agg_Home↔Work':'Commute trip', 'Trip_Purpose_Agg_Home↔Companion':'Companion trip', 'TravelAlone':'Solo trip','Trip_Purpose_Agg_Home↔Leisure':'Leisure trip','Trip_Purpose_Agg_Home↔Shopping':'Shopping trip','Trip_Purpose_Agg_Home↔School':'School trip',
         'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning trip',
-        'Season_Winter':'Winter season','MeanTime2Transit_origin':'Time to transit',
+        'Season_Winter':'Winter season','MeanTime2Transit_origin':'Time to transit', #'diff':'Elevation_diff',
         'Trip_Distance':'Trip distance','CarAvailable':'Car ownership',
         'Age':'Age','Sex':'Sex','HHSize':'Household size','IncomeDescriptiveNumeric':'Income','IncomeDetailed_Numeric':'Income',
         'Education_University':'University education', 'Occupation_Employed_FullTime':'Employed'}
@@ -374,6 +373,6 @@ def mode_model(city):
         plt.close() 
 
 #cities_list=pd.Series(['Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other','Germany_other']) 
-cities_list=pd.Series(['Berlin','Paris','Madrid','Wien','Germany_other','France_other']) 
+cities_list=pd.Series(['Berlin','Düsseldorf']) 
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

@@ -280,6 +280,15 @@ def combine_survey_data(city):
     #sHPW_UF['UrbBuildDensity_dest']=sHPW_UF['BuildDensity_dest']/sHPW_UF['LU_Urban_dest']
     sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res']
 
+    # don't consider elevation differences
+    # elev=pd.read_csv('../outputs/elevation/' + city + '_diff.csv')
+    # elev['diff']=round(elev['diff'],2)
+    # elev['orig_geocode']=elev['orig_geocode'].astype('str')
+    # elev['des_geocode']=elev['des_geocode'].astype('str')
+    # elev['ori_des']=elev['orig_geocode']+'_'+elev['des_geocode']
+    # sHPW_UF['ori_des']=sHPW_UF['Ori_Plz']+'_'+sHPW_UF['Des_Plz']
+    # sHPW_UF=sHPW_UF.merge(elev.loc[:,['ori_des','diff']]).copy()
+
     # mean time to transit
     mean_time_tran=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['Time2Transit'].sum()/sHPW[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index()
     mean_time_tran.rename(columns={0:'MeanTime2Transit'},inplace=True)
@@ -675,6 +684,6 @@ def combine_survey_data(city):
     # print(round(sHPW.dropna(axis=0,subset='Trip_Speed').groupby(['Trip_Distance_Cat','Mode'])['Trip_Speed'].mean(),2))
 
 cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
-#cities=pd.Series(['Potsdam']) # currently only cities with complete UF data
+#cities=pd.Series(['Düsseldorf']) # currently only cities with complete UF data
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_DE.csv',index=False)

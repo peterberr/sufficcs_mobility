@@ -4,8 +4,8 @@
 */cache/
 /figures/
 /dev/
-/old/
-/code/test*
+*old*
+*test*
 /manuscript/*
 /outputs/ML_Results/result_figures/*
 /outputs/ML_Results/shap/*
