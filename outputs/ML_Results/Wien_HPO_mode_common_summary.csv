@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
+gkf_gridSearch,full,9splits_hhperGroups,0.3,3,300,0.697,0.011,9387,0.6985394241030111,0.6846992700230061,Wien

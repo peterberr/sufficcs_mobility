@@ -539,12 +539,12 @@ plz_per_weight=pd.DataFrame(sHPW[['Res_geocode', 'HH_PNR','Per_Weight']].drop_du
 plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
 plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
 # then divide
-plz_dist_weight['Daily_Distance_Person']=round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Per_Weight'],3)
+plz_dist_weight['Daily_Distance_Person']=0.001*round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Per_Weight'],3)
 plz_dist_weight.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
 # and car travel distance by residence postcode
 plz_dist_car=pd.DataFrame(sHPW.loc[sHPW['Mode']=='Car',:].groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
 plz_dist_car=plz_dist_car.merge(plz_per_weight)
-plz_dist_car['Daily_Distance_Person_Car']=round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Per_Weight'],3)
+plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Per_Weight'],3)
 plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
 
 # car ownhership rates by household
