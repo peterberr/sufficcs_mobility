@@ -214,6 +214,8 @@ def mode_model(city):
     shap_values2= pd.DataFrame()
     shap_values3= pd.DataFrame()
 
+    summ_table_list=[]
+
     model = XGBClassifier(
         max_depth=md_parameter_all, 
         n_estimators=n_parameter_all, 
@@ -278,7 +280,10 @@ def mode_model(city):
             pval.head()
             summ_table=pd.concat([coeff,pval.loc[:,['bike_p','walk_p','transit_p']]],axis=1)
             summ_table['param']=summ_table['param'].str.replace('FeatureM_','')
-            summ_table.head()
+
+            st_list_fold=[summ_table.drop(columns='param').to_numpy()]
+            summ_table_list.append(st_list_fold)
+            #summ_table.head()
 
             summ_table.to_excel(writer, sheet_name='summ' + id,index=False)
         except: 
@@ -287,6 +292,11 @@ def mode_model(city):
     # Close the Pandas Excel writer and output the Excel file.
     writer.save()
     writer.close()
+
+    mdarray=np.array(summ_table_list).squeeze()
+    means=np.nanmean(mdarray,axis=0)
+    means_df=pd.DataFrame(data=np.hstack((np.reshape(summ_table['param'].to_numpy(),(len(summ_table),1)),means)),columns=summ_table.columns.values)
+    means_df.to_csv('../outputs/ML_Results/mode_MNLR/'  + city + '_mean.csv',index=False)
 
     y_test = y_test.squeeze(axis=1)
     y_predict = y_predict.squeeze(axis=1)
@@ -413,3 +423,29 @@ def mode_model(city):
 cities_list=pd.Series(cities_all) 
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
+
+# extra code to summarise and combine mean results for all cities
+cities=['Berlin','Paris','Madrid','Wien','France_other','Germany_other']
+
+parameters=['Trip_Purpose_Agg[T.Home↔Leisure]','Trip_Purpose_Agg[T.Home↔School]','Trip_Purpose_Agg[T.Home↔Shopping]','Trip_Purpose_Agg[T.Home↔Work]','Trip_Purpose_Agg[T.Other]',
+            'Sex','Age','Trip_Distance','CarAvailable','UrbPopDensity_origin','DistSubcenter_origin','DistCenter_origin','UrbBuildDensity_origin','IntersecDensity_origin',
+            'street_length_origin','bike_lane_share_origin','LU_UrbFab_origin','LU_Comm_origin']
+
+for city in cities:
+    print('loading summary for ', city)
+    summ_city=pd.read_csv('../outputs/ML_Results/mode_MNLR/' + city + '_mean.csv')
+    summ_city['city']=city
+    summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
+    summ_city_short.loc[summ_city_short['bike_p']>0.1,'bike']=np.nan
+    summ_city_short.loc[summ_city_short['walk_p']>0.1,'walk']=np.nan
+    summ_city_short.loc[summ_city_short['transit_p']>0.1,'transit']=np.nan
+    if city==cities[0]:
+        summ_all=summ_city_short.copy()
+    else:
+        summ_all=pd.concat([summ_all,summ_city_short])
+
+l2= [summ_all.columns[0:7].to_list()] 
+cols = ['city'] + [i for sl in l2 for i in sl]
+summ_all=summ_all.loc[:,cols].copy()
+
+summ_all.to_csv('../outputs/ML_Results/mode_MNLR/All_short.csv',index=False)
