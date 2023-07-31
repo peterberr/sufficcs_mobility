@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
+kf_gridSearch,full,9splits,0.2,4,100,0.722,0.056,807,0.7222118135637994,0.7619876633067078,Potsdam

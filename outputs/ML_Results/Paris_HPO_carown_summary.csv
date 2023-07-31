@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
+kf_gridSearch,full,9splits,0.1,4,100,0.761,0.008,7631,0.7595043120396555,0.7452313824658571,Paris

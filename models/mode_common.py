@@ -299,6 +299,7 @@ def mode_model(city):
     means_df.to_csv('../outputs/ML_Results/mode_MNLR/'  + city + '_mean.csv',index=False)
 
     y_test = y_test.squeeze(axis=1)
+    y_test2 = y_test2.squeeze(axis=1)
     y_predict = y_predict.squeeze(axis=1)
     y_predict2 = y_predict2.squeeze(axis=1)
     f1_model_ML = metrics.f1_score(y_test, y_predict, average='weighted')
