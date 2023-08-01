@@ -32,7 +32,7 @@ def dist_commute(city):
                     #'PopDensity_res','BuildDensity_res',
                     'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
                     'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
-                    'LU_Comm_res', 'LU_Road_res', 'LU_Urban_res','Trip_Distance']]
+                    'LU_Comm_res' ,'Trip_Distance']]
         df0['City']=city0
         df_all=df0.copy()
 
@@ -46,12 +46,16 @@ def dist_commute(city):
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
                             'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
-                            'LU_Comm_res', 'LU_Road_res', 'LU_Urban_res','Trip_Distance']]
+                            'LU_Comm_res','Trip_Distance']]
                 df1['City']=city1
                 if len(df1.columns==df_all.columns):
                        df_all=pd.concat([df_all,df1])
                        print(city1, 'added.')
                        #print(len(df_all), 'rows in the combined dataframe')
+        df_all['HHNR']=df_all['City']+'_'+df_all['HHNR'].astype(int).astype(str)
+        df_all['HH_PNR']=df_all['City']+'_'+df_all['HH_PNR'].astype(int).astype(str)
+        df_all['HH_P_WNR']=df_all['City']+'_'+df_all['HH_P_WNR'].astype(str)
+        df_all.drop(columns='City',inplace=True)
         df_UF=df_all.copy()
     elif city=='France_other':
         city0='Clermont'
@@ -62,7 +66,7 @@ def dist_commute(city):
                     #'PopDensity_res','BuildDensity_res',
                     'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
                     'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
-                    'LU_Comm_res', 'LU_Road_res', 'LU_Urban_res','Trip_Distance']]
+                    'LU_Comm_res', 'Trip_Distance']]
         df0['City']=city0
         df_all=df0.copy()
 
@@ -76,13 +80,16 @@ def dist_commute(city):
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
                             'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
-                            'LU_Comm_res', 'LU_Road_res', 'LU_Urban_res','Trip_Distance']]
-
+                            'LU_Comm_res', 'Trip_Distance']]
                 df1['City']=city1
                 if len(df1.columns==df_all.columns):
                        df_all=pd.concat([df_all,df1])
                        print(city1, 'added.')
                        #print(len(df_all), 'rows in the combined dataframe')
+        df_all['HHNR']=df_all['City']+'_'+df_all['HHNR'].astype(int).astype(str)
+        df_all['HH_PNR']=df_all['City']+'_'+df_all['HH_PNR'].astype(int).astype(str)
+        df_all['HH_P_WNR']=df_all['City']+'_'+df_all['HH_P_WNR'].astype(str)
+        df_all.drop(columns='City',inplace=True)
         df_UF=df_all.copy()
     else:
             df=pd.read_csv('../outputs/Combined/' + city + '_UF.csv',dtype={'Ori_geocode': str, 'Des_geocode': str,'Res_geocode': str })
@@ -92,13 +99,18 @@ def dist_commute(city):
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
                             'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
-                            'LU_Comm_res', 'LU_Road_res', 'LU_Urban_res','Trip_Distance']]
+                            'LU_Comm_res', 'Trip_Distance']]
     # restrict to trips between home and work (commuting trips)        
     df_UF=df_UF.loc[df_UF['Trip_Purpose_Agg']=='Home↔Work',]
+    # restrict to those in employment
+    df_UF=df_UF.loc[df_UF['Occupation'].isin(['Trainee','Employed_FullTime','Employed_PartTime','Employed']),]
+    df_UF.loc[df_UF['Education'].isin(['No diploma yet','Other','Apprenticeship','Unknown']),'Education']='Unknown/Other'
+    if city=='Clermont':
+          df_UF=df_UF.loc[df_UF['Education']!='Unknown/Other',]
 
     df=df_UF.dropna()
 
-        # identify the feature columns
+    # identify the feature columns
     N_non_feature=6 # how many non-features are at the start of the df
     cols=df.columns
     newcols=(df.columns[:N_non_feature].tolist()) + ('FeatureD' +'_'+ cols[N_non_feature:-1]).tolist() + (df.columns[-1:].tolist())
@@ -119,7 +131,7 @@ def dist_commute(city):
     N=len(df)
     # Define the parameter space to be considered
     PS = {"learning_rate": [0.1 ,0.15,0.2,0.3], 
-                    "n_estimators": [100, 200, 300, 400],
+                    "n_estimators": [100, 200, 300],
                     "max_depth":[3, 4, 5]}
 
     X=df[[col for col in df.columns if "FeatureD" in col]]
@@ -182,9 +194,9 @@ def dist_commute(city):
         learning_rate=lr_parameter_all)
     
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_commute/'  + city + '.xlsx', engine='openpyxl')
-    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res + bike_lane_share_res  + Commute_Trip +  Age"
+    form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res + FeatureD_bike_lane_share_res"
 
-    for train_idx, test_idx in cv.split(X): # select here 
+    for train_idx, test_idx in cv.split(X,groups=gr): # select here 
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test_fold = y.iloc[train_idx], y.iloc[test_idx]
         df_train, df_test = df0.iloc[train_idx], df0.iloc[test_idx]
@@ -223,7 +235,7 @@ def dist_commute(city):
         pval.rename(columns={'index':'param',0:'p'},inplace=True)
 
         summ_table=pd.concat([coeff,pval['p']],axis=1)
-        summ_table['param']=summ_table['param'].str.replace('FeatureO_','')
+        summ_table['param']=summ_table['param'].str.replace('FeatureD_','')
 
         st_list_fold=[summ_table.drop(columns='param').to_numpy()]
         summ_table_list.append(st_list_fold)
@@ -254,7 +266,7 @@ def dist_commute(city):
     HPO_summary['City']=city
     HPO_summary.to_csv('../outputs/ML_Results/' + city + '_HPO_dist_commute_summary.csv',index=False)
 
-    X_disp=[re.sub('featureD_','', x) for x in X.columns]
+    X_disp=[re.sub('FeatureD_','', x) for x in X.columns]
 
     shap_values=shap_values.sort_index()
     shap_values.reset_index(inplace=True)
@@ -328,3 +340,10 @@ def dist_commute(city):
 
     with open('../outputs/ML_Results/shap/dist_commute/' + city + '_importance.pkl', 'wb') as g:
             pickle.dump(importance_df, g)
+
+    with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
+        pickle.dump(df, h)
+
+cities=pd.Series(['France_other','Germany_other'])
+#cities=pd.Series(cities_all)
+cities.apply(dist_commute)
