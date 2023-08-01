@@ -15,36 +15,95 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import pickle
+import statsmodels.formula.api as smf
+from datetime import datetime
 
-cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Paris_large','Toulouse','Madrid','Wien','France_other','Germany_other']
-countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
+cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
+countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
 
 def dist_agg(city):
     country=countries[cities_all.index(city)]
     print(city, country)
     if city=='Germany_other':
-            df=pd.read_csv('../outputs/Combined/Germany_UF.csv',dtype={'Ori_geocode': str, 'Des_geocode': str,'Res_geocode': str })
-            df=df.loc[df['City']!='Berlin',]
+        city0='Dresden'
+        df0=pd.read_csv('../outputs/Combined/' + city0 + '_UF.csv')
+        df0['Commute_Trip']=0
+        df0.loc[df0['Trip_Purpose_Agg']=='Home↔Work','Commute_Trip']=1
+        #print(len(df0.columns), 'columns in the data for ', city0)
+        df0=df0.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
+        #'PopDensity_res','BuildDensity_res', 
+        'UrbPopDensity_res', 'UrbBuildDensity_res',
+        'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+        'LU_Comm_res',  'Commute_Trip','Age','Trip_Distance']] # 'LU_Road_res', 'LU_Urban_res',
+        df0['City']=city0
+        df_all=df0.copy()
+
+        cities0=['Leipzig','Magdeburg','Potsdam','Frankfurt am Main','Düsseldorf','Kassel']
+        for city1 in cities0:
+                print(city1)
+                df1=pd.read_csv('../outputs/Combined/' + city1 + '_UF.csv')
+                df1['Commute_Trip']=0
+                df1.loc[df1['Trip_Purpose_Agg']=='Home↔Work','Commute_Trip']=1
+                df1=df1.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
+                #'PopDensity_res','BuildDensity_res', 
+                'UrbPopDensity_res', 'UrbBuildDensity_res',
+                'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
+                #print(len(df1.columns), 'columns in the data for ', city1)
+                df1['City']=city1
+                if len(df1.columns==df_all.columns):
+                       df_all=pd.concat([df_all,df1])
+                       print(city1, 'added.')
+                       print(len(df_all), 'rows in the combined dataframe')
+        df_UF=df_all.copy()
     elif city=='France_other':
-            df=pd.read_csv('../outputs/Combined/France_UF.csv',dtype={'Ori_geocode': str, 'Des_geocode': str,'Res_geocode': str })
-            df=df.loc[df['City']!='Paris',]
+        city0='Clermont'
+        df0=pd.read_csv('../outputs/Combined/' + city0 + '_UF.csv')
+        df0['Commute_Trip']=0
+        df0.loc[df0['Trip_Purpose_Agg']=='Home↔Work','Commute_Trip']=1
+        df0=df0.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
+        #'PopDensity_res','BuildDensity_res', 
+        'UrbPopDensity_res', 'UrbBuildDensity_res',
+        'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+        'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
+        #print(len(df0.columns), 'columns in the data for ', city0)
+        df0['City']=city0
+        df_all=df0.copy()
+
+        cities0=['Toulouse','Montpellier','Lyon','Nantes','Nimes','Lille','Dijon']
+        for city1 in cities0:
+                print(city1)
+                df1=pd.read_csv('../outputs/Combined/' + city1 + '_UF.csv')
+                df1['Commute_Trip']=0
+                df1.loc[df1['Trip_Purpose_Agg']=='Home↔Work','Commute_Trip']=1
+                df1=df1.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
+                #'PopDensity_res','BuildDensity_res', 
+                'UrbPopDensity_res', 'UrbBuildDensity_res',
+                'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
+        #print(len(df0.columns), 'columns in the data for ', city0)
+                print(len(df1.columns), 'columns in the data for ', city1)
+                df1['City']=city1
+                if len(df1.columns==df_all.columns):
+                       df_all=pd.concat([df_all,df1])
+                       print(city1, 'added.')
+                       print(len(df_all), 'rows in the combined dataframe')
+        df_UF=df_all.copy()
     else:
             df=pd.read_csv('../outputs/Combined/' + city + '_UF.csv',dtype={'Ori_geocode': str, 'Des_geocode': str,'Res_geocode': str })
+            df['Commute_Trip']=0
+            df.loc[df['Trip_Purpose_Agg']=='Home↔Work','Commute_Trip']=1
+            df_UF=df.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
+                            #'PopDensity_res','BuildDensity_res',
+                            'UrbPopDensity_res', 'UrbBuildDensity_res',
+                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                            'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
 
-    df['Commute_Trip']=0
-    df.loc[df['Trip_Purpose_Agg']=='Home↔Work','Commute_Trip']=1
-
-    # decide here whether the 'urban' or raw population and building density is used
-    df_UF=df.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
-    #'PopDensity_res','BuildDensity_res', 
-    'UrbPopDensity_res', 'UrbBuildDensity_res',
-    'IntersecDensity_res', 'StreetLength_res', 'LU_UrbFab_res',
-    'LU_Comm_res', 'LU_Road_res', 'LU_Urban_res', 'Commute_Trip','Age','Trip_Distance']]
-
+    count=df_UF.groupby('Res_geocode')['Trip_Distance'].count().reset_index()
+    count.rename(columns={'Trip_Distance':'count'},inplace=True)
     df_UF=df_UF.groupby('Res_geocode').mean().drop_duplicates() #
     df_UF.reset_index(inplace=True)
-    count=df.groupby('Res_geocode')['Trip_Distance'].count().reset_index()
-    count.rename(columns={'Trip_Distance':'count'},inplace=True)
+
     df_UF=df_UF.merge(count)
     df_UF=df_UF.loc[df_UF['count']>4,]
     df_agg=df_UF.copy()
@@ -61,7 +120,7 @@ def dist_agg(city):
     if city in ['Potsdam','Magdeburg','Kassel']:
         cv = RepeatedKFold(n_splits=3,n_repeats=10,random_state=2)
     else:
-            cv = RepeatedKFold(n_splits=5,n_repeats=10,random_state=2)
+        cv = RepeatedKFold(n_splits=5,n_repeats=10,random_state=2)
     
     # Define the parameter space to be considered
     PS = {"learning_rate": [0.01, 0.05,0.1,0.2], 
@@ -88,6 +147,8 @@ def dist_agg(city):
     y_predict = pd.DataFrame()
     y_predict2 = pd.DataFrame()
     y_test = pd.DataFrame()
+    y_test2 = pd.DataFrame()
+    summ_table_list=[]
 
     shap_values= pd.DataFrame() 
 
@@ -96,14 +157,19 @@ def dist_agg(city):
     n_estimators=n_parameter_all, 
     learning_rate=lr_parameter_all)
 
-    model2 = LinearRegression()
-
     # if doing the repeated cv and creation of shap values
     r2ml=[]
     r2lr=[]
+
+    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res + bike_lane_share_res  + Commute_Trip + Age"
+    writer = pd.ExcelWriter('../outputs/ML_Results/dist_LR/'  + city + '.xlsx', engine='openpyxl')
     for train_idx, test_idx in cv.split(X): # select here 
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test_fold = y.iloc[train_idx], y.iloc[test_idx]
+            df_train, df_test = df_agg.iloc[train_idx], df_agg.iloc[test_idx]
+            y_test_fold2=df_test['Trip_Distance']
+            id=datetime.now().strftime("%S%f")
+            print('id',id)
 
             # train & predict
             model.fit(X_train, y_train, verbose=False, eval_set=[(X_train, y_train), (X_test, y_test_fold)])
@@ -120,17 +186,43 @@ def dist_agg(city):
             y_test = pd.concat([y_test, y_test_fold], axis=0)
 
             shap_values = pd.concat([shap_values, shap_values_fold], axis=0)
-
-            model2.fit(X_train, y_train)
-            y_predict_fold2 = pd.Series(model2.predict(X_test), index=X_test.index)
-            r2lr.extend([metrics.r2_score(y_test_fold.array, y_predict_fold2.array)])
+            
+            lin_reg = smf.ols(form_str, data=df_train).fit()
+            yhat=np.asarray(lin_reg.predict(df_test.drop(columns='Trip_Distance')))
+            y_predict_fold2 = pd.Series(yhat, index=df_test.index)
             y_predict2 = pd.concat([y_predict2, y_predict_fold2], axis=0)
+            y_test2 = pd.concat([y_test2, y_test_fold2], axis=0)
+            
+            r2lr.extend([metrics.r2_score(y_test_fold.array, y_predict_fold2.array)])
+
+            coeff=lin_reg.params.reset_index()
+            coeff.rename(columns={'index':'param',0:'coefficient'},inplace=True)
+
+            pval=lin_reg.pvalues.reset_index()
+            pval.rename(columns={'index':'param',0:'p'},inplace=True)
+
+            summ_table=pd.concat([coeff,pval['p']],axis=1)
+            summ_table['param']=summ_table['param'].str.replace('FeatureO_','')
+
+            st_list_fold=[summ_table.drop(columns='param').to_numpy()]
+            summ_table_list.append(st_list_fold)
+
+            summ_table.to_excel(writer, sheet_name='summ' + id,index=False)
+    # Close the Pandas Excel writer and output the Excel file.
+    writer.save()
+    writer.close()
+    
+    mdarray=np.array(summ_table_list).squeeze()
+    means=np.nanmean(mdarray,axis=0)
+    means_df=pd.DataFrame(data=np.hstack((np.reshape(summ_table['param'].to_numpy(),(len(summ_table),1)),means)),columns=summ_table.columns.values)
+    means_df.to_csv('../outputs/ML_Results/dist_LR/'  + city + '_mean.csv',index=False)
 
     y_test = y_test.squeeze(axis=1)
+    y_test2 = y_test2.squeeze(axis=1)
     y_predict = y_predict.squeeze(axis=1)
     y_predict2 = y_predict2.squeeze(axis=1)
     r2_model=metrics.r2_score(y_test, y_predict)
-    r2_model_reg=metrics.r2_score(y_test, y_predict2)
+    r2_model_reg=metrics.r2_score(y_test2, y_predict2)
     print('GBDT Model r2: ' + city)
     print(r2_model)
     print('LR Model r2: ' + city)
@@ -138,12 +230,12 @@ def dist_agg(city):
     HPO_summary['R2_full_ML']=r2_model
     HPO_summary['R2_full_LR']=r2_model_reg
     HPO_summary['City']=city
-    HPO_summary.to_csv('../outputs/ML_Results/' + city + '_HPO_distance_agg_summary.csv',index=False)
+    HPO_summary.to_csv('../outputs/ML_Results/' + city + '_HPO_dist_agg_summary.csv',index=False)
 
     r2ml=pd.DataFrame(r2ml)
     r2ml.columns=['GBDT']
     r2ml['LR']=r2lr
-    r2ml.to_csv('../outputs/ML_Results/' + city + '_HPO_distance_agg_r2.csv',index=False)
+    r2ml.to_csv('../outputs/ML_Results/' + city + '_HPO_dist_agg_r2.csv',index=False)
 
     X_disp=[re.sub('featureD_','', x) for x in X.columns]
 
@@ -155,7 +247,7 @@ def dist_agg(city):
     shap.summary_plot(shap_values.sort_index().to_numpy(), X.sort_index(),feature_names=X_disp,max_display=14,show=False)
     plt.title('Feature Influence for Trip Distance, ' + city + ', R2: ' + round(r2_model,3).astype(str))
     plt.xlabel("SHAP value (impact on distance, in m)")
-    plt.savefig('../outputs/ML_Results/result_figures/distance_agg/' + city + '_FI_distance.png',facecolor='w',dpi=65,bbox_inches='tight')
+    plt.savefig('../outputs/ML_Results/result_figures/dist_agg/' + city + '_FI_distance.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
     shap_sum = np.abs(shap_values).mean(axis=0)
     importance_df = pd.DataFrame([X_disp, shap_sum.tolist()]).T
@@ -210,20 +302,20 @@ def dist_agg(city):
                     ax2.set_ylim(0,len(data))
             ax2.set_yticks([])
     plt.suptitle("SHAP values for most important UF features, " + city,y=0.92,size=16)
-    plt.savefig('../outputs/ML_Results/result_figures/distance_agg/' + city + '_main.png',facecolor='w',dpi=65,bbox_inches='tight')
+    plt.savefig('../outputs/ML_Results/result_figures/dist_agg/' + city + '_main.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
 
     # save shap_values, to enable later re-creation and editing of shap plots
-    with open('../outputs/ML_Results/shap/distance_agg/' + city + '.pkl', 'wb') as f:
+    with open('../outputs/ML_Results/shap/dist_agg/' + city + '.pkl', 'wb') as f:
             pickle.dump(shap_values, f)
 
-    with open('../outputs/ML_Results/shap/distance_agg/' + city + '_importance.pkl', 'wb') as g:
+    with open('../outputs/ML_Results/shap/dist_agg/' + city + '_importance.pkl', 'wb') as g:
             pickle.dump(importance_df, g)
     
-    with open('../outputs/ML_Results/shap/distance_agg/' + city + '_df.pkl', 'wb') as h:
+    with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
             pickle.dump(df_agg, h)
 
 
-#cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Germany_other'])
-cities=pd.Series(['Paris','Berlin','Madrid','Wien'])
+#cities=pd.Series(['France_other','Germany_other'])
+cities=pd.Series(cities_all)
 cities.apply(dist_agg)

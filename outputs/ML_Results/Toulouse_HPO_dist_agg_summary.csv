@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.439,0.156,183,0.46007255443268513,0.527738790609982,Toulouse

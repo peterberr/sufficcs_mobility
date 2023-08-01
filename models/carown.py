@@ -411,14 +411,14 @@ cities2=['Berlin','Paris','France_other','Germany_other']
 parameters=['IncomeDetailed_Numeric', 'HHSize','maxAgeHH','UniversityEducation','InEmployment','AllRetired',
             'HHType_simp[T.MultiAdult_Kids]','HHType_simp[T.Single_Female]','HHType_simp[T.Single_Female_Parent]','HHType_simp[T.Single_Male]','HHType_simp[T.Single_Male_Parent]',
             'UrbPopDensity','DistSubcenter','DistCenter','UrbBuildDensity','IntersecDensity',
-            'street_length_origin','bike_lane_share_origin','LU_UrbFab','LU_Comm']
+            'StreetLength','bike_lane_share','LU_UrbFab','LU_Comm','LU_Urban']
 
 for city in cities2:
     print('loading summary for ', city)
     summ_city=pd.read_csv('../outputs/ML_Results/carown_LR/' + city + '_mean.csv')
     summ_city['city']=city
     summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
-    summ_city_short.loc[summ_city_short['p']>0.1,'bike']=np.nan
+    summ_city_short.loc[summ_city_short['p']>0.1,'coefficient']=np.nan
     if city==cities2[0]:
         summ_all=summ_city_short.copy()
     else:

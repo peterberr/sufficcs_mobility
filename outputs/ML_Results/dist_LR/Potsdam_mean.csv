@@ -1,0 +1,13 @@
+param,coefficient,p
+Intercept,9.631888345950097,
+DistSubcenter_res,4.137562240311743,
+DistCenter_res,109.37920040888785,
+UrbPopDensity_res,0.3666160775827732,
+UrbBuildDensity_res,-0.0018485866979804093,
+IntersecDensity_res,-3.7152031392615634,
+street_length_res,24.63293957171321,
+LU_Comm_res,-3.848842624827696,
+LU_UrbFab_res,4.116209748303877,
+bike_lane_share_res,9.59020893298975,
+Commute_Trip,-1.9106327718789407,
+Age,88.1220913400648,
