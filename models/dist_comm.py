@@ -105,6 +105,7 @@ def dist_commute(city):
     # restrict to those in employment
     df_UF=df_UF.loc[df_UF['Occupation'].isin(['Trainee','Employed_FullTime','Employed_PartTime','Employed']),]
     df_UF.loc[df_UF['Education'].isin(['No diploma yet','Other','Apprenticeship','Unknown']),'Education']='Unknown/Other'
+    df_UF.loc[df_UF['Education'].isin(['Secondary+BAC','Secondary+Matura']),'Education']='Secondary'
     if city=='Clermont':
           df_UF=df_UF.loc[df_UF['Education']!='Unknown/Other',]
 
@@ -344,6 +345,6 @@ def dist_commute(city):
     with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
         pickle.dump(df, h)
 
-cities=pd.Series(['France_other','Germany_other'])
+cities=pd.Series(['Wien'])
 #cities=pd.Series(cities_all)
 cities.apply(dist_commute)

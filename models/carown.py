@@ -16,10 +16,8 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 
-cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France','Germany','Madrid_Wien','France_other','Germany_other']
-countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany','Spain_Austria','France','Germany']
-
-#df_all=pd.read_csv('../outputs/Combined/All_co_UF.csv')
+cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
+countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
 
 def carown_model(city):
     country=countries[cities_all.index(city)]
@@ -87,6 +85,7 @@ def carown_model(city):
     'CarOwnershipHH')
     ]
 
+    df.loc[df['HHType_simp'].isin(['Single_Female_Parent','Single_Male_Parent']),'HHType_simp']='Single_Parent'
     df=df.loc[df['UrbPopDensity']<80000,]   
     # remove high building density outliers (For Leipzig)
     df=df.loc[df['UrbBuildDensity']<1e8,]   
@@ -357,10 +356,10 @@ def carown_model(city):
 
         if city == 'Berlin': let='a'
         elif city == 'Paris': let='b'
-        elif city == 'Madrid': let='c'
-        elif city == 'Wien': let='d'
-        elif city == 'Germany_other': let='e'
-        elif city == 'France_other': let='f'
+        # elif city == 'Madrid': let='c'
+        # elif city == 'Wien': let='d'
+        elif city == 'Germany_other': let='c'
+        elif city == 'France_other': let='d'
         else: let='0'
 
         plt.title(let + ') ' + citylab,fontsize=16)
@@ -401,31 +400,31 @@ def carown_model(city):
     plt.savefig('../outputs/ML_Results/result_figures/carown/' + city + '_FI_detail6.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close() 
 
-cities=pd.Series(['France_other','Germany_other'])
+cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 
-# extra code to summarise and combine mean results for all cities
-cities2=['Berlin','Paris','France_other','Germany_other']
+# # extra code to summarise and combine mean results for all cities
+# cities2=['Berlin','Paris','France_other','Germany_other']
 
-parameters=['IncomeDetailed_Numeric', 'HHSize','maxAgeHH','UniversityEducation','InEmployment','AllRetired',
-            'HHType_simp[T.MultiAdult_Kids]','HHType_simp[T.Single_Female]','HHType_simp[T.Single_Female_Parent]','HHType_simp[T.Single_Male]','HHType_simp[T.Single_Male_Parent]',
-            'UrbPopDensity','DistSubcenter','DistCenter','UrbBuildDensity','IntersecDensity',
-            'StreetLength','bike_lane_share','LU_UrbFab','LU_Comm','LU_Urban']
+# parameters=['IncomeDetailed_Numeric', 'HHSize','maxAgeHH','UniversityEducation','InEmployment','AllRetired',
+#             'HHType_simp[T.MultiAdult_Kids]','HHType_simp[T.Single_Female]','HHType_simp[T.Single_Female_Parent]','HHType_simp[T.Single_Male]','HHType_simp[T.Single_Male_Parent]',
+#             'UrbPopDensity','DistSubcenter','DistCenter','UrbBuildDensity','IntersecDensity',
+#             'StreetLength','bike_lane_share','LU_UrbFab','LU_Comm','LU_Urban']
 
-for city in cities2:
-    print('loading summary for ', city)
-    summ_city=pd.read_csv('../outputs/ML_Results/carown_LR/' + city + '_mean.csv')
-    summ_city['city']=city
-    summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
-    summ_city_short.loc[summ_city_short['p']>0.1,'coefficient']=np.nan
-    if city==cities2[0]:
-        summ_all=summ_city_short.copy()
-    else:
-        summ_all=pd.concat([summ_all,summ_city_short])
+# for city in cities2:
+#     print('loading summary for ', city)
+#     summ_city=pd.read_csv('../outputs/ML_Results/carown_LR/' + city + '_mean.csv')
+#     summ_city['city']=city
+#     summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
+#     summ_city_short.loc[summ_city_short['p']>0.1,'coefficient']=np.nan
+#     if city==cities2[0]:
+#         summ_all=summ_city_short.copy()
+#     else:
+#         summ_all=pd.concat([summ_all,summ_city_short])
 
-l2= [summ_all.columns[0:3].to_list()] 
-cols = ['city'] + [i for sl in l2 for i in sl]
-summ_all=summ_all.loc[:,cols].copy()
+# l2= [summ_all.columns[0:3].to_list()] 
+# cols = ['city'] + [i for sl in l2 for i in sl]
+# summ_all=summ_all.loc[:,cols].copy()
 
-summ_all.to_csv('../outputs/ML_Results/carown_LR/All_short.csv',index=False)
+# summ_all.to_csv('../outputs/ML_Results/carown_LR/All_short.csv',index=False)

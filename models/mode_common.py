@@ -419,34 +419,31 @@ def mode_model(city):
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-
-#cities_list=pd.Series(['Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other','Germany_other']) 
-cities_list=pd.Series(cities_all) 
-
+cities_list=pd.Series(['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse']) 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 
-# extra code to summarise and combine mean results for all cities
-cities=['Berlin','Paris','Madrid','Wien','France_other','Germany_other']
+# # extra code to summarise and combine mean results for all cities
+# cities=['Berlin','Paris','Madrid','Wien','France_other','Germany_other']
 
-parameters=['Trip_Purpose_Agg[T.Home↔Leisure]','Trip_Purpose_Agg[T.Home↔School]','Trip_Purpose_Agg[T.Home↔Shopping]','Trip_Purpose_Agg[T.Home↔Work]','Trip_Purpose_Agg[T.Other]',
-            'Sex','Age','Trip_Distance','CarAvailable','UrbPopDensity_origin','DistSubcenter_origin','DistCenter_origin','UrbBuildDensity_origin','IntersecDensity_origin',
-            'street_length_origin','bike_lane_share_origin','LU_UrbFab_origin','LU_Comm_origin']
+# parameters=['Trip_Purpose_Agg[T.Home↔Leisure]','Trip_Purpose_Agg[T.Home↔School]','Trip_Purpose_Agg[T.Home↔Shopping]','Trip_Purpose_Agg[T.Home↔Work]','Trip_Purpose_Agg[T.Other]',
+#             'Sex','Age','Trip_Distance','CarAvailable','UrbPopDensity_origin','DistSubcenter_origin','DistCenter_origin','UrbBuildDensity_origin','IntersecDensity_origin',
+#             'street_length_origin','bike_lane_share_origin','LU_UrbFab_origin','LU_Comm_origin']
 
-for city in cities:
-    print('loading summary for ', city)
-    summ_city=pd.read_csv('../outputs/ML_Results/mode_MNLR/' + city + '_mean.csv')
-    summ_city['city']=city
-    summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
-    summ_city_short.loc[summ_city_short['bike_p']>0.1,'bike']=np.nan
-    summ_city_short.loc[summ_city_short['walk_p']>0.1,'walk']=np.nan
-    summ_city_short.loc[summ_city_short['transit_p']>0.1,'transit']=np.nan
-    if city==cities[0]:
-        summ_all=summ_city_short.copy()
-    else:
-        summ_all=pd.concat([summ_all,summ_city_short])
+# for city in cities:
+#     print('loading summary for ', city)
+#     summ_city=pd.read_csv('../outputs/ML_Results/mode_MNLR/' + city + '_mean.csv')
+#     summ_city['city']=city
+#     summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
+#     summ_city_short.loc[summ_city_short['bike_p']>0.1,'bike']=np.nan
+#     summ_city_short.loc[summ_city_short['walk_p']>0.1,'walk']=np.nan
+#     summ_city_short.loc[summ_city_short['transit_p']>0.1,'transit']=np.nan
+#     if city==cities[0]:
+#         summ_all=summ_city_short.copy()
+#     else:
+#         summ_all=pd.concat([summ_all,summ_city_short])
 
-l2= [summ_all.columns[0:7].to_list()] 
-cols = ['city'] + [i for sl in l2 for i in sl]
-summ_all=summ_all.loc[:,cols].copy()
+# l2= [summ_all.columns[0:7].to_list()] 
+# cols = ['city'] + [i for sl in l2 for i in sl]
+# summ_all=summ_all.loc[:,cols].copy()
 
-summ_all.to_csv('../outputs/ML_Results/mode_MNLR/All_short.csv',index=False)
+# summ_all.to_csv('../outputs/ML_Results/mode_MNLR/All_short.csv',index=False)

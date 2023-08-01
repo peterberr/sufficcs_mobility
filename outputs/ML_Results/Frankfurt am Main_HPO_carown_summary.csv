@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-kf_gridSearch,full,9splits,0.1,4,100,0.742,0.038,755,0.7272376759716065,0.7420838616435721,Frankfurt am Main
+kf_gridSearch,full,9splits,0.1,4,100,0.742,0.038,755,0.7369134845709454,0.7253666024191907,Frankfurt am Main
