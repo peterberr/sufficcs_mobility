@@ -126,23 +126,31 @@ def dist_agg(city):
     PS = {"learning_rate": [0.01, 0.05,0.1,0.2], 
                 "n_estimators": [100,200, 300],
                 "max_depth":[2,3,4]}
+    
+    fp='../outputs/ML_Results/'+city+'_HPO_dist_agg_summary.csv'
+    if os.path.isfile(fp):
+        print('HPs already identified')
+        HPO_summary=pd.read_csv(fp)
+        n_parameter_all = HPO_summary['N_est'][0]
+        lr_parameter_all = HPO_summary['LR'][0]
+        md_parameter_all = HPO_summary['MD'][0]
+    else:
+        tuning_all = GridSearchCV(estimator=XGBRegressor(verbosity=0), param_grid=PS, cv=cv, scoring="r2",return_train_score=True)
+        tuning_all.fit(X,y)
 
-    tuning_all = GridSearchCV(estimator=XGBRegressor(verbosity=0), param_grid=PS, cv=cv, scoring="r2",return_train_score=True)
-    tuning_all.fit(X,y)
+        print('best hyper-parameters identified by HPO')
+        print(tuning_all.best_params_)
+        print('r2 with best hyper-parameters')
+        print(tuning_all.best_score_)
+        cv_res_all=tuning_all.cv_results_
 
-    print('best hyper-parameters identified by HPO')
-    print(tuning_all.best_params_)
-    print('r2 with best hyper-parameters')
-    print(tuning_all.best_score_)
-    cv_res_all=tuning_all.cv_results_
+        n_parameter_all = tuning_all.best_params_['n_estimators']
+        lr_parameter_all = tuning_all.best_params_['learning_rate']
+        md_parameter_all = tuning_all.best_params_['max_depth']
 
-    n_parameter_all = tuning_all.best_params_['n_estimators']
-    lr_parameter_all = tuning_all.best_params_['learning_rate']
-    md_parameter_all = tuning_all.best_params_['max_depth']
-
-    # save results of HPO, and full model r2
-    r8=['rkf_gridSearch','agg_postcode','5splits_10repeats',tuning_all.best_params_['learning_rate'],tuning_all.best_params_['max_depth'],tuning_all.best_params_['n_estimators'],round(tuning_all.best_score_,3),round(cv_res_all['std_test_score'][tuning_all.best_index_],3),N] #
-    HPO_summary=pd.DataFrame([r8],columns=['CV_Type','Sample','CV_params','LR','MD','N_est','R2_best','SD_best','N_obs']) # the last element in this case is the sd of f1 scores in the fold which produced best results
+        # save results of HPO, and full model r2
+        r8=['rkf_gridSearch','agg_postcode','5splits_10repeats',tuning_all.best_params_['learning_rate'],tuning_all.best_params_['max_depth'],tuning_all.best_params_['n_estimators'],round(tuning_all.best_score_,3),round(cv_res_all['std_test_score'][tuning_all.best_index_],3),N] #
+        HPO_summary=pd.DataFrame([r8],columns=['CV_Type','Sample','CV_params','LR','MD','N_est','R2_best','SD_best','N_obs']) # the last element in this case is the sd of f1 scores in the fold which produced best results
 
     y_predict = pd.DataFrame()
     y_predict2 = pd.DataFrame()
@@ -316,6 +324,6 @@ def dist_agg(city):
             pickle.dump(df_agg, h)
 
 
-#cities=pd.Series(['France_other','Germany_other'])
+#cities=pd.Series(['Potsdam'])
 cities=pd.Series(cities_all)
 cities.apply(dist_agg)

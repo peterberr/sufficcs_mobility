@@ -107,7 +107,7 @@ def mode_model(city):
         'Trip_Time', 'Season','Trip_Purpose_Agg','CarAvailable', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
         'HHSize', # 'IncomeDescriptiveNumeric', #'IncomeDetailed', 'HHType', # household details
         'Sex', 'Occupation', 'Education','Age', # 'ParkingAvailable_Dest', # personal details, only use age for now, not age group, check later what works beter
-        'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin', 'MeanTime2Transit_origin',# 'DistSubcenter_dest', 'DistCenter_dest'
+        'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin', # 'DistSubcenter_dest', 'DistCenter_dest', 'MeanTime2Transit_origin',
         'IntersecDensity_origin', 'street_length_origin', 'bike_lane_share_origin', # 'K_avg_origin', 'StreetDensity_origin', 'StreetsPerNode_origin', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
         'LU_UrbFab_origin','LU_Comm_origin',     # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest',
         # target: mode
@@ -134,6 +134,8 @@ def mode_model(city):
     df.loc[df['Mode']=='Transit','Mode_num']=3
 
     df.drop(columns='Mode',inplace=True)
+
+    df.loc[df['Education'].isin(['Secondary+BAC','Secondary+Matura']),'Education']='Secondary'
 
     # identify the feature columns
     N_non_feature=6 # how many non-features are at the start of the df
@@ -419,7 +421,7 @@ def mode_model(city):
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-cities_list=pd.Series(['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse']) 
+cities_list=pd.Series(['Wien','Paris','France_other']) 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 
 # # extra code to summarise and combine mean results for all cities
