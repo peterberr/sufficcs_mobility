@@ -531,6 +531,8 @@ def french_density_shapefiles(city,size_thresh):
         area_hires=pd.DataFrame(gdf_hi['area'].describe()).reset_index()
         area_lores=pd.DataFrame(gdf_low['area'].describe()).reset_index()
         sums=pd.DataFrame(gdf_low[['area','Population']].sum()).reset_index()
+        sums['index'].replace({'Population':'population'},inplace=True)
+        sums=pd.concat([sums,pd.DataFrame([{'index':'density',0:sums.iloc[1,1]/sums.iloc[0,1]}])])
         writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
 
         # include all the dfs/sheets here, and then save
@@ -759,19 +761,21 @@ def french_density_shapefiles(city,size_thresh):
         area_hires=pd.DataFrame(gdf_hi['area'].describe()).reset_index()
         area_lores=pd.DataFrame(gdf_low['area'].describe()).reset_index()
         sums=pd.DataFrame(gdf_low[['area','Population']].sum()).reset_index()
-        sums['Density']=sums[0][1]/sums[0][0]
+        sums['index'].replace({'Population':'population'},inplace=True)
+        sums=pd.concat([sums,pd.DataFrame([{'index':'density',0:sums.iloc[1,1]/sums.iloc[0,1]}])])
         writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
 
         # include all the dfs/sheets here, and then save
         area_mixed.to_excel(writer, sheet_name='area_mixre',index=False)
         area_hires.to_excel(writer, sheet_name='area_hires',index=False)
         area_lores.to_excel(writer, sheet_name='area_lores',index=False)
+        
         sums.to_excel(writer, sheet_name='area_pop_sum',index=False)
-
+        
         # Close the Pandas Excel writer and output the Excel file.
         writer.save()
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Clermont','Toulouse','Lyon','Nantes','Nimes','Lille','Dijon','Montpellier'])
+cities=pd.Series(['Paris'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid

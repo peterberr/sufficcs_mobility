@@ -249,6 +249,8 @@ area_mixed=pd.DataFrame(gdf_mix['area'].describe()).reset_index()
 area_hires=pd.DataFrame(gdf_hi['area'].describe()).reset_index()
 area_lores=pd.DataFrame(gdf_lo['area'].describe()).reset_index()
 sums=pd.DataFrame(gdf_lo[['area','Population']].sum()).reset_index()
+sums['index'].replace({'Population':'population'},inplace=True)
+sums=pd.concat([sums,pd.DataFrame([{'index':'density',0:sums.iloc[1,1]/sums.iloc[0,1]}])])
 writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
 
 # include all the dfs/sheets here, and then save

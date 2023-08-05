@@ -25,7 +25,7 @@ crs0=3035
 
 # load in shapefile of Austrian municipalities
 # https://www.data.gv.at/katalog/dataset/stat_gliederung-osterreichs-in-gemeinden14f53
-fp='C:/Users/peter/Documents/projects/city_mobility/shapefiles/austria/STATISTIK_AUSTRIA_GEM_20130101.shp'
+fp='../../MSCA_data/Austria_shapefiles/STATISTIK_AUSTRIA_GEM_20130101.shp'
 gdf=gpd.read_file(fp)
 gdf.to_crs(crs0,inplace=True)
 
@@ -119,6 +119,9 @@ wien_ext.to_csv('../outputs/density_geounits/' + city + '_pop_density.csv',index
 # create and save some summary stats
 area_lores=pd.DataFrame(wien_ext['area'].describe()).reset_index()
 sums=pd.DataFrame(wien_ext[['area','Population']].sum()).reset_index()
+sums['index'].replace({'Population':'population'},inplace=True)
+sums=pd.concat([sums,pd.DataFrame([{'index':'density',0:sums.iloc[1,1]/sums.iloc[0,1]}])])
+
 writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
 
 # include all the dfs/sheets here, and then save
