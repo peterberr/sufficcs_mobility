@@ -26,7 +26,7 @@ with open('../dictionaries/city_postcode_DE.pkl','rb') as f:
     city_plz = pickle.load(f)
 
 
-inc_stats_all=pd.DataFrame(columns = ['Income', 'CarAvailable', 'Trip_Distance', 'Trip_Distance_Car','Car_ModeShare', 'City'])
+inc_stats_all=pd.DataFrame(columns = ['Income', 'CarOwnershipHH', 'Trip_Distance', 'Trip_Distance_Car','Car_ModeShare', 'City'])
 
 def combine_survey_data(city):
     global inc_stats_all
@@ -109,6 +109,9 @@ def combine_survey_data(city):
     # then replace any 99s with nan
     sH.loc[:,'Time2Transit'].replace(99,np.nan,inplace=True)
 
+    # count company cars towards car ownership
+    sH.loc[sH['CompanyCarHH']==1,'CarOwnershipHH']=1
+
     # define Month and Season in the trip file
     sW['Month']=sW.loc[:,'Date'].str[3:5]
     sW['Season']='Winter'
@@ -172,21 +175,24 @@ def combine_survey_data(city):
     sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:]
     sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
     
-    weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]
+    weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
     weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
 
     unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
 
     weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
-    weight_daily_travel_all=pd.DataFrame(data={'Mode':['All'],'Daily_travel_all':0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()})
-    #weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sP['Per_Weight'].sum()).reset_index()
+    commute_avg=0.001*weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Trip_Weight'].sum()
+    trip_avg=0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()
+    weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[trip_avg,commute_avg]})
+
     weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
     weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
     carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
     own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
     weight_daily_travel=weight_daily_travel.merge(own,how='left')
-    weight_daily_travel=weight_daily_travel.merge(weight_daily_travel_all,how='outer')
+    weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
+    weight_daily_travel.loc[weight_daily_travel['Mode']=='All','Daily_Travel_cap']=weight_daily_travel['Daily_Travel_cap'].sum()
 
     weight_daily_travel.to_csv('../outputs/summary_stats/'+city+'_stats.csv',index=False)
 
@@ -458,14 +464,14 @@ def combine_survey_data(city):
 
     # car ownhership rates by household
     plz_hh_weight=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
-    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+    # plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarOwnershipHH']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
     plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
     plz_hh_car=plz_hh_car.merge(plz_hh_weight)
     plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)
     plz_hh_car.drop(columns=['HH_WithCar','HH_Weight'],inplace=True)
 
     # and mean time to transite by postcode
-
     summary=msdrp.merge(plz_dist_weight,how='left')
     summary=summary.merge(plz_dist_car,how='left')
     summary=summary.merge(plz_hh_car,how='left')

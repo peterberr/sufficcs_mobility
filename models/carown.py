@@ -92,7 +92,6 @@ def carown_model(city):
     df=df.loc[df['maxAgeHH']>0,]  
     df.dropna(inplace=True)
     
-
     # identify the feature columns
     N_non_feature=2 # how many non-features are at the start of the df
     cols=df.columns
@@ -403,28 +402,3 @@ def carown_model(city):
 cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
-
-# # extra code to summarise and combine mean results for all cities
-# cities2=['Berlin','Paris','France_other','Germany_other']
-
-# parameters=['IncomeDetailed_Numeric', 'HHSize','maxAgeHH','UniversityEducation','InEmployment','AllRetired',
-#             'HHType_simp[T.MultiAdult_Kids]','HHType_simp[T.Single_Female]','HHType_simp[T.Single_Female_Parent]','HHType_simp[T.Single_Male]','HHType_simp[T.Single_Male_Parent]',
-#             'UrbPopDensity','DistSubcenter','DistCenter','UrbBuildDensity','IntersecDensity',
-#             'StreetLength','bike_lane_share','LU_UrbFab','LU_Comm','LU_Urban']
-
-# for city in cities2:
-#     print('loading summary for ', city)
-#     summ_city=pd.read_csv('../outputs/ML_Results/carown_LR/' + city + '_mean.csv')
-#     summ_city['city']=city
-#     summ_city_short=summ_city.loc[summ_city['param'].isin(parameters),:].copy().reset_index(drop=True)
-#     summ_city_short.loc[summ_city_short['p']>0.1,'coefficient']=np.nan
-#     if city==cities2[0]:
-#         summ_all=summ_city_short.copy()
-#     else:
-#         summ_all=pd.concat([summ_all,summ_city_short])
-
-# l2= [summ_all.columns[0:3].to_list()] 
-# cols = ['city'] + [i for sl in l2 for i in sl]
-# summ_all=summ_all.loc[:,cols].copy()
-
-# summ_all.to_csv('../outputs/ML_Results/carown_LR/All_short.csv',index=False)

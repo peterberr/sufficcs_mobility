@@ -777,5 +777,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Paris'])
+cities=pd.Series(['Lille'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid

@@ -298,19 +298,24 @@ def combine_survey_data(city):
     sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:] 
     sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
 
-    # # from here is standard to all cities
-    weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance')]
+    weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
     weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
 
     unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
 
     weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
+    commute_avg=0.001*weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Per_Weight'].sum()
+    trip_avg=0.001*weighted['Dist_Weighted_P'].sum()/weighted['Per_Weight'].sum()
+    weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[trip_avg,commute_avg]})
+
     weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
     weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
     carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
     own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
     weight_daily_travel=weight_daily_travel.merge(own,how='left')
+    weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
+    weight_daily_travel.loc[weight_daily_travel['Mode']=='All','Daily_Travel_cap']=weight_daily_travel['Daily_Travel_cap'].sum()
 
     weight_daily_travel.to_csv('../outputs/summary_stats/'+city+'_stats.csv',index=False)
 
@@ -707,6 +712,115 @@ def combine_survey_data(city):
 
         # calculate summary stats by geocode
 
+        # make dist categories
+        sHPW['Trip_Distance_Cat']=np.nan
+        sHPW.loc[sHPW['Trip_Distance']<1000,'Trip_Distance_Cat']='0-1'
+        sHPW.loc[(sHPW['Trip_Distance']>=1000)&(sHPW['Trip_Distance']<2000),'Trip_Distance_Cat']='1-2'
+        sHPW.loc[(sHPW['Trip_Distance']>=2000)&(sHPW['Trip_Distance']<4000),'Trip_Distance_Cat']='2-4'
+        sHPW.loc[(sHPW['Trip_Distance']>=4000)&(sHPW['Trip_Distance']<8000),'Trip_Distance_Cat']='4-8'
+        sHPW.loc[(sHPW['Trip_Distance']>=8000),'Trip_Distance_Cat']='8+'
+
+        # plot trip mode by distance
+        mode_dist=sHPW.loc[:,('Mode','Trip_Distance_Cat','Trip_Purpose')].groupby(['Mode','Trip_Distance_Cat']).count().unstack('Mode').reset_index()
+        mode_dist.columns = ['_'.join(col) for col in mode_dist.columns.values]
+        mode_dist.reset_index(inplace=True,drop=True)
+        mode_dist.columns=[col.replace('Trip_Purpose_','') for col in mode_dist.columns]
+
+        mode_dist_pc=sHPW.loc[:,('Mode','Trip_Distance_Cat','Per_Weight')].groupby(['Mode','Trip_Distance_Cat']).sum().unstack('Mode').reset_index()
+        mode_dist_pc.columns = ['_'.join(col) for col in mode_dist_pc.columns.values]
+        mode_dist_pc.reset_index(inplace=True,drop=True)
+        mode_dist_pc.columns=[col.replace('Per_Weight_','') for col in mode_dist_pc.columns]
+        mode_dist_pc.loc[:,('2_3_Wheel','Bike','Car','Foot','Transit')]=100*mode_dist_pc.loc[:,('2_3_Wheel','Bike','Car','Foot','Transit')]/sHPW.loc[:,('Per_Weight')].sum()
+
+        fig, ax = plt.subplots()
+        mode_dist.plot(kind='bar',stacked=True,ax=ax)
+        ax.set_title('Trip Mode by Distance, '+city,color='black',fontsize=16)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=12)
+        ax.set_xticklabels(mode_dist['Trip_Distance_Cat_'].values)
+        plt.xticks(rotation = 0,fontsize=12)
+        plt.xlabel('Distance Bands (km)',fontsize=12)
+        plt.ylabel('Num. Trips',fontsize=12)
+        fig.savefig('../figures/bars/'+ city+'_ModeDistance.png',facecolor='w',bbox_inches='tight')
+
+        fig, ax = plt.subplots()
+        mode_dist_pc.plot(kind='bar',stacked=True,ax=ax)
+        ax.set_title('Trip Mode by Distance, '+city,color='black',fontsize=20)
+        ax.set_ylim(0,50)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=14)
+        ax.set_xticklabels(mode_dist_pc['Trip_Distance_Cat_'].values)
+        plt.xticks(rotation = 0,fontsize=14)
+        plt.xlabel('Distance Bands (km)',fontsize=14)
+        plt.ylabel('Share of Trips (%)',fontsize=14)
+        fig.savefig('../figures/bars/'+ city+'_ModeDistance_pc.png',facecolor='w',bbox_inches='tight')
+
+        # plot trip mode by purpose and distance 
+        mode_purp=sHPW.loc[:,('Mode','Trip_Distance_Cat','Trip_Purpose_Agg')].groupby(['Mode','Trip_Purpose_Agg']).count().unstack('Mode').reset_index()
+        mode_purp.columns = [''.join(col) for col in mode_purp.columns.values]
+        mode_purp.reset_index(inplace=True,drop=True)
+        mode_purp.columns=[col.replace('Trip_Distance_Cat','') for col in mode_purp.columns]
+        mode_purp.fillna(0,inplace=True)
+
+        mode_purp_dist=sHPW.loc[:,('Mode','Trip_Distance_Cat','Trip_Purpose_Agg','Trip_Time')].groupby(['Mode','Trip_Purpose_Agg','Trip_Distance_Cat']).count().unstack('Mode').reset_index()
+        mode_purp_dist.columns = [''.join(col) for col in mode_purp_dist.columns.values]
+        mode_purp_dist.reset_index(inplace=True,drop=True)
+        mode_purp_dist.columns=[col.replace('Trip_Time','') for col in mode_purp_dist.columns]
+        mode_purp_dist.fillna(0,inplace=True)
+        fig, ax = plt.subplots(3,2,figsize=(14,12))
+
+        axp=ax[0][0]
+        mode_purp_dist.loc[mode_purp_dist['Trip_Distance_Cat']=='0-1',].plot(kind='bar',stacked=True,ax=axp,legend=False)
+        axp.set_title('Distance = 0-1km',color='black',fontsize=16)
+        axp.set_xticklabels(mode_purp_dist['Trip_Purpose_Agg'].unique())
+        axp.get_xaxis().set_visible(False)
+        plt.sca(axp)
+        plt.ylabel('Num. Trips',fontsize=12)
+
+        axp=ax[0][1]
+        mode_purp_dist.loc[mode_purp_dist['Trip_Distance_Cat']=='1-2',].plot(kind='bar',stacked=True,ax=axp)
+        axp.set_title('Distance = 1-2km',color='black',fontsize=16)
+        handles, labels = axp.get_legend_handles_labels()
+        axp.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=12)
+        axp.set_xticklabels(mode_purp_dist['Trip_Purpose_Agg'].unique())
+        axp.get_xaxis().set_visible(False)
+
+        axp=ax[1][0]
+        mode_purp_dist.loc[mode_purp_dist['Trip_Distance_Cat']=='2-4',].plot(kind='bar',stacked=True,ax=axp,legend=False)
+        axp.set_title('Distance = 2-4km',color='black',fontsize=16)
+        axp.set_xticklabels(mode_purp_dist['Trip_Purpose_Agg'].unique())
+        axp.get_xaxis().set_visible(False)
+        plt.sca(axp)
+        plt.ylabel('Num. Trips',fontsize=12)
+
+        axp=ax[1][1]
+        mode_purp_dist.loc[mode_purp_dist['Trip_Distance_Cat']=='4-8',].plot(kind='bar',stacked=True,ax=axp)
+        axp.set_title('Distance = 4-8km',color='black',fontsize=16)
+        handles, labels = axp.get_legend_handles_labels()
+        axp.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=12)
+        axp.set_xticklabels(mode_purp_dist['Trip_Purpose_Agg'].unique())
+        axp.get_xaxis().set_visible(False)
+
+        axp=ax[2][0]
+        mode_purp_dist.loc[mode_purp_dist['Trip_Distance_Cat']=='8+',].plot(kind='bar',stacked=True,ax=axp,legend=False)
+        axp.set_title('Distance >8km',color='black',fontsize=16)
+        axp.set_xticklabels(mode_purp_dist['Trip_Purpose_Agg'].unique())
+        plt.sca(axp)
+        plt.xticks(rotation=45,fontsize=12,ha='right',rotation_mode='anchor')
+        plt.ylabel('Num. Trips',fontsize=12)
+
+        axp=ax[2][1]
+        mode_purp.plot(kind='bar',stacked=True,ax=axp)
+        axp.set_title('All Distances',color='black',fontsize=16)
+        handles, labels = axp.get_legend_handles_labels()
+        axp.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=12)
+        axp.set_xticklabels(mode_purp['Trip_Purpose_Agg'].unique())
+        #axp.text(s='All Dist', x=0.05, y=0.9,transform=axp.transAxes,fontsize=14)
+        plt.sca(axp)
+        plt.xticks(rotation=45,fontsize=12,ha='right',rotation_mode='anchor')
+
+        fig.suptitle("Trip Mode by Purpose & Distance, " + city, fontsize=22,y=0.95)
+        fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
 
 
 cities=pd.Series(['Clermont','Toulouse','Montpellier','Lyon','Nantes','Nimes','Lille','Dijon'])

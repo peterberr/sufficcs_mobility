@@ -256,16 +256,30 @@ sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
 # if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(person_trips):
 #     print('NB! Some respondents report trips over more than one day')
 unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
-weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance')]
+weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
 weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
 
+# weight_daily_travel=pd.DataFrame(weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
+# weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
+# weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
+
+# carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+# own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
+# weight_daily_travel=weight_daily_travel.merge(own,how='left')
+
 weight_daily_travel=pd.DataFrame(weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
+commute_avg=weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Per_Weight'].sum()
+trip_avg=weighted['Dist_Weighted_P'].sum()/weighted['Per_Weight'].sum()
+weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[trip_avg,commute_avg]})
+
 weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
 weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
 carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
 own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
 weight_daily_travel=weight_daily_travel.merge(own,how='left')
+weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
+weight_daily_travel.loc[weight_daily_travel['Mode']=='All','Daily_Travel_cap']=weight_daily_travel['Daily_Travel_cap'].sum()
 
 weight_daily_travel.to_csv('../outputs/summary_stats/'+city+'_stats.csv',index=False)
 

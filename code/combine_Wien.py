@@ -208,24 +208,36 @@ sHPW=sHPW.loc[~((sHPW['HH_PNR'].isin(double)) & (sHPW['ReportingDay']==2)) ,:]
 # classify moped as 2-3wheeler
 sHPW.loc[sHPW['Mode_Detailed']=='Moped','Mode']='2_3_Wheel'
 
-weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]
+weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
 weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
 
-# weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sP['Per_Weight'].sum()).reset_index()
-# need to fix this, the distances don't make sense
-# weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sP['HH_PNR'].drop_duplicates()))).reset_index()
 weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(sHPW['HH_PNR'].drop_duplicates()))).reset_index()
+commute_avg=0.001*weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Trip_Weight'].sum()
+trip_avg=0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()
+weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[trip_avg,commute_avg]})
+
 weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
 weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
-
-weight_daily_travel_all=pd.DataFrame(data={'Mode':['All'],'Daily_travel_all':0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()})
 
 carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
 own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
 weight_daily_travel=weight_daily_travel.merge(own,how='left')
-weight_daily_travel=weight_daily_travel.merge(weight_daily_travel_all,how='outer')
+weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
+weight_daily_travel.loc[weight_daily_travel['Mode']=='All','Daily_Travel_cap']=weight_daily_travel['Daily_Travel_cap'].sum()
+
+# weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
+# weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
+
+# weight_daily_travel_all=pd.DataFrame(data={'Mode':['All'],'Daily_travel_all':0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()})
+
+# carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+# own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
+# weight_daily_travel=weight_daily_travel.merge(own,how='left')
+# weight_daily_travel=weight_daily_travel.merge(weight_daily_travel_all,how='outer')
 
 weight_daily_travel.to_csv('../outputs/summary_stats/'+city+'_stats.csv',index=False)
+
+
 
 # mode_share=sHPW.groupby('Mode')['Trip_Distance'].sum()/sum(sHPW.groupby('Mode')['Trip_Distance'].sum())
 # weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]

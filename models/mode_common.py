@@ -16,7 +16,7 @@ import pickle
 
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
-form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarAvailable + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education  + FeatureM_UrbPopDensity_origin +  FeatureM_DistSubcenter_origin + FeatureM_DistCenter_origin +  FeatureM_UrbBuildDensity_origin +  FeatureM_IntersecDensity_origin +  FeatureM_street_length_origin +FeatureM_bike_lane_share_origin +  FeatureM_LU_UrbFab_origin + FeatureM_LU_Comm_origin"
+form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education  + FeatureM_UrbPopDensity_origin +  FeatureM_DistSubcenter_origin + FeatureM_DistCenter_origin +  FeatureM_UrbBuildDensity_origin +  FeatureM_IntersecDensity_origin +  FeatureM_street_length_origin +FeatureM_bike_lane_share_origin +  FeatureM_LU_UrbFab_origin + FeatureM_LU_Comm_origin" # FeatureM_CarAvailable replaced by FeatureM_CarOwnershipHH
 
 def mode_model(city):
     country=countries[cities_all.index(city)]
@@ -79,7 +79,7 @@ def mode_model(city):
         df=df.loc[df['Age']>=0,].copy()
         # extract the columns of interest for a trip distance  model. remove variables related to motorisation/equipment ownership
         df=df.loc[:,('HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode',#'Dist_group', # IDs, trip geocodes, home-Res_geocode
-            'Trip_Time', 'Season','Trip_Purpose_Agg','CarAvailable', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
+            'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
             #'TravelAlone',
             'HHSize', #'IncomeDetailed_Numeric', #'IncomeDetailed', 'HHType', # household details
             'Sex',  'Occupation', 'Education','Age', # 'MobilityConstraints',
@@ -92,7 +92,7 @@ def mode_model(city):
     elif country=='France':
                 # extract the columns of interest for a trip distance  model. remove variables related to motorisation/equipment ownership
         df=df.loc[:,('HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode',#'Dist_group', # IDs, trip geocodes, home-Res_geocode
-            'Trip_Time', 'Season','Trip_Purpose_Agg','CarAvailable', 'Trip_Distance', # trip details, keep number of accompanying householders, but remove n_others_car as it gives away the mode.     
+            'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders, but remove n_others_car as it gives away the mode.     
             'HHSize', #'IncomeDetailed', # household details
             'Sex', 'Occupation', 'Education','Age', #'ParkingAvailable_Dest', # personal details, only use age for now, not age group, check later what works beter. missing 'MobilityConstraints' in FR
             'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin', # 'DistSubcenter_dest', 'DistCenter_dest', missing time2trans in FR
@@ -104,7 +104,7 @@ def mode_model(city):
         
     if city=='Wien':
         df=df.loc[:,('HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode',#'Dist_group', # IDs, trip geocodes, home-Res_geocode
-        'Trip_Time', 'Season','Trip_Purpose_Agg','CarAvailable', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
+        'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
         'HHSize', # 'IncomeDescriptiveNumeric', #'IncomeDetailed', 'HHType', # household details
         'Sex', 'Occupation', 'Education','Age', # 'ParkingAvailable_Dest', # personal details, only use age for now, not age group, check later what works beter
         'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin', # 'DistSubcenter_dest', 'DistCenter_dest', 'MeanTime2Transit_origin',
@@ -116,7 +116,7 @@ def mode_model(city):
 
     if city == 'Madrid':
         df=df.loc[:,('HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode',#'Dist_group', # IDs, trip geocodes, home-Res_geocode
-        'Trip_Time', 'Season','Trip_Purpose_Agg','CarAvailable', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
+        'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
         'HHSize', #'IncomeDetailed', 'HHType', # household details
         'Sex', 'Occupation', 'Education','Age', # personal details, only use age for now, not age group, check later what works beter
         'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin',
@@ -352,7 +352,7 @@ def mode_model(city):
         'Trip_Purpose_Agg_Home↔Work':'Commute trip', 'Trip_Purpose_Agg_Home↔Companion':'Companion trip', 'TravelAlone':'Solo trip','Trip_Purpose_Agg_Home↔Leisure':'Leisure trip','Trip_Purpose_Agg_Home↔Shopping':'Shopping trip','Trip_Purpose_Agg_Home↔School':'School trip',
         'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning trip',
         'Season_Winter':'Winter season','MeanTime2Transit_origin':'Time to transit', #'diff':'Elevation_diff',
-        'Trip_Distance':'Trip distance','CarAvailable':'Car ownership',
+        'Trip_Distance':'Trip distance','CarOwnershipHH':'Car ownership',
         'Age':'Age','Sex':'Sex','HHSize':'Household size','IncomeDescriptiveNumeric':'Income','IncomeDetailed_Numeric':'Income',
         'Education_University':'University education', 'Occupation_Employed_FullTime':'Employed'}
 
