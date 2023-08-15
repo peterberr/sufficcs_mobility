@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-kf_gridSearch,full,9splits,0.1,4,100,0.794,0.041,1270,0.7882049953390081,0.7884819585376233,Magdeburg
+kf_gridSearch,full,9splits,0.1,4,100,0.794,0.041,1270,0.8193617810491708,0.8206276815609119,Magdeburg

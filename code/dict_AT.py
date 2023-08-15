@@ -34,7 +34,7 @@ value_dict_P={'HHNR': {}, 'Person': {}, # Variables related to administrative bo
 'BikeAvailable': {1:1, 2:0},
 'CarAvailable': {1:1, 2:0},
 '2_3WAvailable': {1:1, 2:0},
-'Occupation':{1:'Student',2:'Employed',3:'Retired',4:'Other'}, # surprisingly low number of 3rd level students in Dresden
+'Occupation':{1:'Student',2:'Employed',3:'Retired',4:'Other'}, 
 'Education':{1:'No diploma yet',2:'Secondary',3:'Apprenticeship',4:'Secondary+Matura',5:'University'}, 
 'Work/Study_AtHome':{1:1, 2:0},
 'Work/Study_CarParkAvailable':{1:1, 2:0,3:0},

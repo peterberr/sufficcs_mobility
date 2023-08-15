@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,300,0.227,0.006,57559,0.227375646420796,0.1981205285708333,Madrid

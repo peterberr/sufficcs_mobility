@@ -696,7 +696,7 @@ def combine_survey_data(city):
         sH2_UF=sH2_UF.merge(conn,left_on='Res_Sec_Zone',right_on='geocode').copy() 
         sH2_UF.drop(columns='geocode',inplace=True)
         sH2_UF.rename(columns={'k_avg':'K_avg','clean_intersection_density_km':'IntersecDensity','street_density_km':'StreetDensity',
-        'streets_per_node_avg':'StreetsPerNode','street_length_avg':'StreetLength'},inplace=True)
+        'streets_per_node_avg':'StreetsPerNode','street_length_avg':'street_length'},inplace=True)
 
         # land-use stats, 
         sH2_UF=sH2_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
@@ -823,6 +823,6 @@ def combine_survey_data(city):
         fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
 
 
-cities=pd.Series(['Clermont','Toulouse','Montpellier','Lyon','Nantes','Nimes','Lille','Dijon'])
+cities=pd.Series(['Clermont','Toulouse'])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)

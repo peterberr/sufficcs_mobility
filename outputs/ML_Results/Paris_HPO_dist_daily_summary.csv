@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,100,0.295,0.015,14905,0.29500063135398846,0.25613565198476484,Paris

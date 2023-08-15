@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,3,100,0.198,0.039,1684,0.19801870108326647,0.17013608233637967,Potsdam

@@ -102,6 +102,7 @@ def dist_commute(city):
                             'LU_Comm_res', 'Trip_Distance']]
     # restrict to trips between home and work (commuting trips)        
     df_UF=df_UF.loc[df_UF['Trip_Purpose_Agg']=='Home↔Work',]
+    df_UF.drop(columns='Trip_Purpose_Agg',inplace=True)
     # restrict to those in employment
     df_UF=df_UF.loc[df_UF['Occupation'].isin(['Trainee','Employed_FullTime','Employed_PartTime','Employed']),]
     df_UF.loc[df_UF['Education'].isin(['No diploma yet','Other','Apprenticeship','Unknown']),'Education']='Unknown/Other'

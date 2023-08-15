@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-kf_gridSearch,full,9splits,0.15,5,100,0.851,0.016,5649,0.8455842160829109,0.8430777868602792,France_other
+kf_gridSearch,full,9splits,0.15,5,100,0.851,0.016,5649,0.8479778263943454,0.8469084496984114,France_other

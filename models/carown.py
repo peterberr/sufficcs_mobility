@@ -41,8 +41,7 @@ def carown_model(city):
                 print(city1, 'added.')
                 print(len(df_all), 'rows in the combined dataframe')
         df_all['HHNR']=df_all['City']+'_'+df_all['HHNR'].astype(int).astype(str)
-        # df_all['HH_PNR']=df_all['City']+'_'+df_all['HH_PNR'].astype(int).astype(str)
-        # df_all['HH_P_WNR']=df_all['City']+'_'+df_all['HH_P_WNR'].astype(int).astype(str)
+
         df=df_all.copy()
     elif city=='France_other':
         city0='Clermont'
@@ -62,25 +61,14 @@ def carown_model(city):
                 print(city1, 'added.')
                 print(len(df_all), 'rows in the combined dataframe')
         df_all['HHNR']=df_all['City']+'_'+df_all['HHNR'].astype(int).astype(str)
-        # df_all['HH_PNR']=df_all['City']+'_'+df_all['HH_PNR'].astype(int).astype(str)
-        # df_all['HH_P_WNR']=df_all['City']+'_'+df_all['HH_P_WNR'].astype(int).astype(str)
         df=df_all.copy()
     else: df=pd.read_csv('../outputs/Combined/' + city + '_co_UF.csv')
-
-    # if city in ['Germany', 'France']:
-    #     df=df_all.loc[df_all['Country']==city,]
-    # elif city=='Germany_other':
-    #     df=df_all.loc[(df_all['Country']=='Germany') & (df_all['City']!='Berlin'),]
-    # elif city=='France_other':
-    #     df=df_all.loc[(df_all['Country']=='France') & (df_all['City']!='Paris'),]
-    # else:    
-    #     df=df_all.loc[df_all['City']==city,]
 
     df=df.loc[:,( 'HHNR','Res_geocode',#'Dist_group', # IDs, trip geocodes, home-Res_geocode
     'HHSize','IncomeDetailed_Numeric','HHType_simp','maxAgeHH',# household details, omit  'IncomeDetailed', 'HHType', 
     'UniversityEducation', 'InEmployment', 'AllRetired', # personal-based details
     'UrbPopDensity', 'UrbBuildDensity','DistSubcenter', 'DistCenter', 
-    'bike_lane_share', 'IntersecDensity', 'StreetLength', 'LU_UrbFab', 'LU_Comm', 'LU_Urban',
+    'bike_lane_share', 'IntersecDensity', 'street_length', 'LU_UrbFab', 'LU_Comm',# 'LU_Urban',
     # target: car ownership
     'CarOwnershipHH')
     ]
@@ -175,7 +163,7 @@ def carown_model(city):
         n_estimators=n_parameter_all, 
         learning_rate=lr_parameter_all)
     
-    form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_HHType_simp + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity +  FeatureO_UrbBuildDensity  + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_StreetLength +  FeatureO_LU_UrbFab +  FeatureO_LU_Comm +FeatureO_LU_Urban"
+    form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_HHType_simp + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity +  FeatureO_UrbBuildDensity  + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_street_length +  FeatureO_LU_UrbFab +  FeatureO_LU_Comm"
     writer = pd.ExcelWriter('../outputs/ML_Results/carown_LR/'  + city + '.xlsx', engine='openpyxl')
     for train_idx, test_idx in cv.split(X): # select here 
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -278,7 +266,7 @@ def carown_model(city):
     plt.savefig('../outputs/ML_Results/result_figures/carown/' + city + '_carown_CM.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close() 
 
-    col_dict= {'DistCenter':'Dist. to city center','IntersecDensity':'Instersection density','StreetLength':'Avg. street length',
+    col_dict= {'DistCenter':'Dist. to city center','IntersecDensity':'Instersection density','street_length':'Avg. street length',
                'UniversityEducation':'University education','AllRetired':'Retired','bike_lane_share':'Cycle lane share',
        'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter',
        'LU_Urban':'Urban share, land-use','LU_UrbFab':'Urban fabric share, land-use','LU_Comm':'Commercial share, land-use',
@@ -314,7 +302,7 @@ def carown_model(city):
     if city == 'Germany_other': citylab='Germany, other'
     if city == 'France_other': citylab='France, other'
 
-    lab_dict= {'DistCenter':'Dist. to city center (km)','IntersecDensity':'Instersection density','StreetLength':'Avg. street length','bike_lane_share':'Cycle lane share',
+    lab_dict= {'DistCenter':'Dist. to city center (km)','IntersecDensity':'Instersection density','street_length':'Avg. street length','bike_lane_share':'Cycle lane share',
        'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter','LU_Urban':'Urban share, land-use',
        'IncomeDetailed_Numeric':'Income','HHSize':'Household size','maxAgeHH':'Max householder age','InEmployment':'Employed'}
 
@@ -332,7 +320,7 @@ def carown_model(city):
         y2=yl[i]
         xlab=importance_df['column_label'].iloc[i]
 
-        ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.3,s=8)
+        ax1.scatter(xs,ys,alpha=0.3,s=8)
         plt.plot(x,y1,'k:',label='zero')
         plt.plot(x,y2,'k',label='mean')
         #plt.legend(loc="upper left",prop={'size':12})
@@ -377,7 +365,7 @@ def carown_model(city):
         y2=yl[i]
         xlab=importance_df['column_label'].iloc[i]
 
-        ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.3,s=8)
+        ax1.scatter(xs,ys,alpha=0.3,s=8)
         plt.plot(x,y1,'k:',label='zero')
         plt.plot(x,y2,'k',label='mean')
         #plt.legend(loc="upper left",prop={'size':12})
@@ -400,5 +388,6 @@ def carown_model(city):
     plt.close() 
 
 cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
+#cities=pd.Series(['Clermont','Paris','Toulouse','France_other','Germany_other'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

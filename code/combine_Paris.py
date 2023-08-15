@@ -496,7 +496,7 @@ sH2_UF.rename(columns={'minDist_subcenter':'DistSubcenter','Distance2Center':'Di
 sH2_UF=sH2_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
 sH2_UF.drop(columns='geocode',inplace=True)
 sH2_UF.rename(columns={'k_avg':'K_avg','clean_intersection_density_km':'IntersecDensity','street_density_km':'StreetDensity',
-'streets_per_node_avg':'StreetsPerNode','street_length_avg':'StreetLength'},inplace=True)
+'streets_per_node_avg':'StreetsPerNode','street_length_avg':'street_length'},inplace=True)
 
 # land-use stats, 
 sH2_UF=sH2_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
