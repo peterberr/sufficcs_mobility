@@ -422,5 +422,7 @@ def mode_model(city):
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-cities_list=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Germany_other']) 
+cities_list=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other']) 
+#cities_list=pd.Series(cities_all) 
+
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

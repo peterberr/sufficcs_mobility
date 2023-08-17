@@ -1,68 +1,69 @@
-Feature,,Coefficient,,,,,,,
-City,Berlin,Paris,"FR, other","DE, other",,,,,
-Household income,0.0003,0.0006,0.0009,0.0003,,,,,
-Household size,,,,,,,,,
-Household max age,0.020,0.015,-0.009,0.007,,,,,
-University Education,-0.186,0.281,0.630,,,,,,
-HH Type MultiAdult + Kids,,0.258,,,,,,,
-HH Type Single Female,-1.159,-0.596,-0.939,,,,,,
-HH Type Single Male,-0.730,-0.364,-0.773,,,,,,
-HH Type Single Parent,-0.197,-0.378,-0.920,,,,,,
-Dist. to center,0.074,0.045,0.044,0.065,,,,,
-Dist. to subcenter,,,,,,,,,
-Populuation density,-0.0001,0.0000,,-0.0001,,,,,
-Built-up density,,,,-0.036,,,,,
-Intersection density,,-0.007,-0.007,,,,,,
-Avg. street length,0.003,,,,,,,,
-Cycle lane share (%),,-0.0002,-0.0002,-0.0001,,,,,
-Urban fabric area (%),0.0001,0.0001,0.0004,0.0002,,,,,
-Commercial area (%),,,0.0003,0.0001,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
+city,param,coefficient,p
+Berlin,IncomeDetailed_Numeric,0.000,0.000
+Berlin,HHSize,,0.324
+Berlin,maxAgeHH,0.023,0.000
+Berlin,UniversityEducation,-0.201,0.000
+Berlin,HHType_simp[T.MultiAdult_Kids],0.219,0.029
+Berlin,HHType_simp[T.Single_Female],-1.141,0.000
+Berlin,HHType_simp[T.Single_Male],-0.602,0.000
+Berlin,HHType_simp[T.Single_Parent],-0.196,0.099
+Berlin,DistCenter,0.089,0.000
+Berlin,DistSubcenter,,0.318
+Berlin,UrbPopDensity,0.000,0.000
+Berlin,UrbBuildDensity,,0.257
+Berlin,IntersecDensity,,0.568
+Berlin,street_length,,0.111
+Berlin,bike_lane_share,,0.550
+Berlin,LU_UrbFab,0.011,0.000
+Berlin,LU_Comm,-0.006,0.038
+Paris,IncomeDetailed_Numeric,0.000625117,0.00
+Paris,HHSize,,0.75
+Paris,maxAgeHH,0.014818344,0.00
+Paris,UniversityEducation,0.280202872,0.00
+Paris,HHType_simp[T.MultiAdult_Kids],0.268627789,0.07
+Paris,HHType_simp[T.Single_Female],-0.60701799,0.00
+Paris,HHType_simp[T.Single_Male],-0.369020686,0.00
+Paris,HHType_simp[T.Single_Parent],-0.377259976,0.00
+Paris,DistCenter,0.058491475,0.00
+Paris,DistSubcenter,,0.87
+Paris,UrbPopDensity,-0.00003,0.00
+Paris,UrbBuildDensity,,0.69
+Paris,IntersecDensity,-0.008103042,0.02
+Paris,street_length,,0.28
+Paris,bike_lane_share,-0.021921996,0.00
+Paris,LU_UrbFab,0.00801166,0.01
+Paris,LU_Comm,,0.490188498
+France_other,IncomeDetailed_Numeric,0.001,0.000
+France_other,HHSize,,0.749
+France_other,maxAgeHH,-0.009,0.008
+France_other,UniversityEducation,0.618,0.000
+France_other,HHType_simp[T.MultiAdult_Kids],,0.630
+France_other,HHType_simp[T.Single_Female],-0.943,0.000
+France_other,HHType_simp[T.Single_Male],-0.775,0.000
+France_other,HHType_simp[T.Single_Parent],-0.928,0.000
+France_other,DistCenter,0.053,0.013
+France_other,DistSubcenter,,0.824
+France_other,UrbPopDensity,-0.0001,0.073
+France_other,UrbBuildDensity,,0.783
+France_other,IntersecDensity,-0.007,0.040
+France_other,street_length,,0.742
+France_other,bike_lane_share,-0.015,0.000
+France_other,LU_UrbFab,0.007,0.065
+France_other,LU_Comm,,0.602
+Germany_other,IncomeDetailed_Numeric,0.000,0.000
+Germany_other,HHSize,,0.484
+Germany_other,maxAgeHH,0.008,0.006
+Germany_other,UniversityEducation,-0.145,0.060
+Germany_other,HHType_simp[T.MultiAdult_Kids],,0.408
+Germany_other,HHType_simp[T.Single_Female],,0.903
+Germany_other,HHType_simp[T.Single_Male],,0.820
+Germany_other,HHType_simp[T.Single_Parent],,0.708
+Germany_other,DistCenter,0.089,0.000
+Germany_other,DistSubcenter,,0.749
+Germany_other,UrbPopDensity,0.000,0.004
+Germany_other,UrbBuildDensity,,0.191
+Germany_other,IntersecDensity,-0.009,0.048
+Germany_other,street_length,,0.160
+Germany_other,bike_lane_share,-0.015,0.000
+Germany_other,LU_UrbFab,,0.343
+Germany_other,LU_Comm,,0.848
