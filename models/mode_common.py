@@ -335,7 +335,7 @@ def mode_model(city):
         pickle.dump(shap_valueslist, f)
 
     shap.summary_plot(shap_valueslist, X.sort_index(),feature_names=X_disp,max_display=16,  class_names=['car','bike','foot','trans'],class_inds='original', show=False)
-    plt.title('Overall Feature Influence Mode Choice ' + city)
+    plt.title('Overall Feature Influence Mode Choice ' + city.replace('_',', '))
     plt.savefig('../outputs/ML_Results/result_figures/mode_common/' + city + '_mode_FI.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close() 
 
@@ -394,35 +394,41 @@ def mode_model(city):
     if city in ['Berlin','Paris','Madrid','Wien','France_other','Germany_other']:
         fig, axes = plt.subplots(figsize=(5.5,4))
         shap.summary_plot(shap_values[0], X, feature_names=X_lab, max_display=8, plot_size=None, show=False)
-        plt.title(let + ') ' + city,size=14)
+        if city =='Wien':
+            citylab='Vienna'
+        else:
+            citylab=city
+        #     plt.title(let + ') Vienna', size=14)
+        # else:
+        plt.title(let + ') ' + citylab.replace('_',', '),size=14)
         plt.xlabel("SHAP (probability of car mode choice)", size=11)
         plt.savefig('../outputs/ML_Results/result_figures/mode_common/' + city + '_FI_car.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-
+        
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(11,8))
         ax1 = plt.subplot(221)
         shap.summary_plot(shap_values[2], X, feature_names=X_lab, max_display=8, plot_size=None, show=False)
-        plt.title(let + ') ' + 'Main Feature Influences for Foot Trips ' + city.replace('_',', '))
+        plt.title(let + ') ' + 'Main Feature Influences for Foot Trips ' + citylab.replace('_',', '))
         plt.xlabel("SHAP (probability of foot mode)", size=11)
         ax2 = plt.subplot(222)
         shap.summary_plot(shap_values[1], X, feature_names=X_lab, max_display=8, plot_size=None, show=False)
-        plt.title('Main Feature Influences for Bike Trips ' + city.replace('_',', '))
-        #plt.title(city.replace('_',', '))
+        plt.title('Main Feature Influences for Bike Trips ' + citylab.replace('_',', '))
+        
         plt.xlabel("SHAP (probability of bike mode)", size=11)
         ax3 = plt.subplot(223)
         shap.summary_plot(shap_values[0], X, feature_names=X_lab, max_display=8, plot_size=None, show=False)
-        plt.title('Main Feature Influences for Car Trips ' + city.replace('_',', '))
-        #plt.title(city.replace('_',', '))
+        plt.title('Main Feature Influences for Car Trips ' + citylab.replace('_',', '))
+        
         plt.xlabel("SHAP (probability of car mode)", size=11)
         ax3 = plt.subplot(224)
         shap.summary_plot(shap_values[3], X, feature_names=X_lab, max_display=8, plot_size=None, show=False)
-        plt.title('Main Feature Influences for Transit Trips ' + city.replace('_',', '))
-        #plt.title(city.replace('_',', '))
+        plt.title('Main Feature Influences for Transit Trips ' + citylab.replace('_',', '))
+        
         plt.xlabel("SHAP (probability of transit mode)", size=11)
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-cities_list=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other']) 
+cities_list=pd.Series(['Wien']) 
 #cities_list=pd.Series(cities_all) 
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

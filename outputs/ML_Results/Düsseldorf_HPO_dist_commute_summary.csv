@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.1,3,100,0.103,0.016,3797,0.10806549144594557,0.0312617411877979,Düsseldorf
+gkf_gridSearch,full,9splits_hhperGroups,0.1,3,100,0.103,0.016,3797,0.10794725652809889,0.02937156119495865,Düsseldorf

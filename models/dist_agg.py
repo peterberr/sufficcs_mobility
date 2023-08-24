@@ -291,6 +291,7 @@ def dist_agg(city):
             y2=yl[i]
             xlab=data.columns[i]
 
+            #ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
             ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
             plt.plot(x,y1,'k:',label='zero')
             #plt.plot(x,y2,'k',label='mean')

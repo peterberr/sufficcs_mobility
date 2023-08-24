@@ -9,3 +9,5 @@
 /manuscript/*
 /outputs/ML_Results/result_figures/*
 /outputs/ML_Results/shap/*
+/source/GTFS/*
+/outputs/transit-access-eu/*

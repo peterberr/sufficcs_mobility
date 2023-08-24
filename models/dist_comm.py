@@ -26,6 +26,7 @@ def dist_commute(city):
     if city=='Germany_other':
         city0='Dresden'
         df0=pd.read_csv('../outputs/Combined/' + city0 + '_UF.csv')
+        df0.loc[(df0['Training'].isin(['Apprenticeship/Business','Craftsman/Technical'])) & (df0['Education']!='University'),'Education']='Apprenticeship'
         df0=df0.loc[:,['HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode', 
                     'Trip_Time', 'Season','Trip_Purpose_Agg','HHSize',
                     'Sex', 'Occupation', 'Education','Age',
@@ -40,6 +41,7 @@ def dist_commute(city):
         for city1 in cities0:
                 print(city1)
                 df1=pd.read_csv('../outputs/Combined/' + city1 + '_UF.csv')
+                df1.loc[(df1['Training'].isin(['Apprenticeship/Business','Craftsman/Technical'])) & (df1['Education']!='University'),'Education']='Apprenticeship'
                 df1=df1.loc[:,['HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode', 
                             'Trip_Time', 'Season','Trip_Purpose_Agg','HHSize',
                             'Sex', 'Occupation', 'Education','Age',
@@ -93,6 +95,8 @@ def dist_commute(city):
         df_UF=df_all.copy()
     else:
             df=pd.read_csv('../outputs/Combined/' + city + '_UF.csv',dtype={'Ori_geocode': str, 'Des_geocode': str,'Res_geocode': str })
+            if country=='Germany':
+                df.loc[(df['Training'].isin(['Apprenticeship/Business','Craftsman/Technical'])) & (df['Education']!='University'),'Education']='Apprenticeship'
             df_UF=df.loc[:,['HH_P_WNR','HH_PNR', 'HHNR','Ori_geocode', 'Des_geocode','Res_geocode', 
                             'Trip_Time', 'Season','Trip_Purpose_Agg','HHSize',
                             'Sex', 'Occupation', 'Education','Age',
@@ -105,12 +109,21 @@ def dist_commute(city):
     df_UF.drop(columns='Trip_Purpose_Agg',inplace=True)
     # restrict to those in employment
     df_UF=df_UF.loc[df_UF['Occupation'].isin(['Trainee','Employed_FullTime','Employed_PartTime','Employed']),]
-    df_UF.loc[df_UF['Education'].isin(['No diploma yet','Other','Apprenticeship','Unknown']),'Education']='Unknown/Other'
-    df_UF.loc[df_UF['Education'].isin(['Secondary+BAC','Secondary+Matura']),'Education']='Secondary'
-    if city=='Clermont':
-          df_UF=df_UF.loc[df_UF['Education']!='Unknown/Other',]
+#     df_UF.loc[df_UF['Education'].isin(['No diploma yet','Other','Apprenticeship','Unknown']),'Education']='Unknown/Other'
+#     df_UF.loc[df_UF['Education'].isin(['Secondary+BAC','Secondary+Matura']),'Education']='Secondary'
+    Edu_dict={'University':'University','Secondary':'Secondary','Secondary+BAC':'Secondary','Secondary+Matura':'Secondary',
+          'Apprenticeship':'Apprenticeship',
+          'Elementary':'Primary/None','Pre-School':'Primary/None','No diploma yet':'Primary/None','Unknown':'Primary/None','Other':'Primary/None'}
+
+    df_UF['Education']=df_UF['Education'].map(Edu_dict)
+#     if city=='Clermont':
+#           df_UF=df_UF.loc[df_UF['Education']!='Unknown/Other',]
+    if city in ['Clermont','Nimes']:
+          df_UF.loc[df_UF['Education']=='Apprenticeship','Education']='Secondary'
 
     df=df_UF.dropna()
+    df['Sex']=df['Sex']-1 # change from [1,2] to [0,1], for plotting purposes
+    df=df.loc[df['UrbBuildDensity_res']<1e8,]   # remove high building density outliers (For Leipzig)
 
     # identify the feature columns
     N_non_feature=6 # how many non-features are at the start of the df
@@ -196,7 +209,7 @@ def dist_commute(city):
         learning_rate=lr_parameter_all)
     
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_commute/'  + city + '.xlsx', engine='openpyxl')
-    form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res + FeatureD_bike_lane_share_res"
+    form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season +  FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res + FeatureD_bike_lane_share_res"
 
     for train_idx, test_idx in cv.split(X,groups=gr): # select here 
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -274,9 +287,14 @@ def dist_commute(city):
     shap_values.reset_index(inplace=True)
     shap_values=shap_values.groupby('index').mean().reset_index()
     shap_values.drop(columns=['index'],inplace=True)
+    if city=='Wien':
+          citylab='Vienna'
+    else:
+          citylab=city
+
 
     shap.summary_plot(shap_values.sort_index().to_numpy(), X.sort_index(),feature_names=X_disp,max_display=14,show=False)
-    plt.title('Feature Influence for Trip Distance, ' + city + ', R2: ' + round(r2_model,3).astype(str))
+    plt.title('Feature Influence for Trip Distance, ' + citylab + ', R2: ' + round(r2_model,3).astype(str))
     plt.xlabel("SHAP value (impact on distance, in m)")
     plt.savefig('../outputs/ML_Results/result_figures/dist_commute/' + city + '_FI_distance.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
@@ -289,7 +307,18 @@ def dist_commute(city):
 
     X.sort_index(inplace=True)
     data=X.sort_index().iloc[:,n]
+    data.columns=data.columns.str.replace("FeatureD_", "")
     values=shap_values.sort_index().iloc[:,n]
+    #X_disp=[re.sub('FeatureD_','', x) for x in X.sort_index().columns]
+    col_dict= {'DistCenter_res':'Dist. to city center','DistSubcenter_res':'Dist. to subenter', 'UrbPopDensity_res':'Population density','UrbBuildDensity_res':'Built-up density',
+        'IntersecDensity_res':'Intersection density','LU_Comm_res':'Commercial area','LU_UrbFab_res':'Urban Fabric area','street_length_res':'Avg. street length','bike_lane_share_res':'Cycle lanes',
+        'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning trip','Trip_Time_Nighttime Off-Peak':'Nighttime trip','Trip_Time_Lunch':'Lunchtime trip',
+        'Season_Winter':'Winter season',
+        'Age':'Age','Sex':'Sex','HHSize':'Household size',
+        'Education_University':'University education', 'Occupation_Employed_FullTime':'Employed'}
+    data.rename(columns=col_dict,inplace=True)
+    #X_lab=[*map(col_dict.get, X_disp)]
+
 
     xl=[]
     yl=[]
@@ -303,21 +332,28 @@ def dist_commute(city):
             yl.append(dftemp['v'].values)
             y0.append(dftemp['v0'].values)
 
-    fig = plt.figure(figsize=(12,15))
-
-    for i in range(0,8):
-            ax1 = fig.add_subplot(421+i)
+    fig = plt.figure(figsize=(11,12))
+    if city == 'Berlin': let='a'
+    if city == 'Paris': let='b'
+    if city == 'Madrid': let='c'
+    if city == 'Wien': let='d'
+    if city == 'Germany_other': let='e'
+    if city == 'France_other': let='f'
+    else: let = ''
+    for i in range(0,6):
+            ax1 = fig.add_subplot(321+i)
             xs=data.iloc[:,i]
             ys=values.iloc[:,i]
             x=xl[i]
             y1=y0[i]
             y2=yl[i]
             xlab=data.columns[i]
+            #xlab=X_lab[i]
 
-            ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
-            plt.plot(x,y1,'k:',label='zero')
+            ax1.scatter(xs,ys,alpha=0.9,s=8)
+            plt.plot(x,y1,'k:')
             #plt.plot(x,y2,'k',label='mean')
-            plt.legend(loc="upper left",prop={'size':12})
+            #plt.legend(loc="upper left",prop={'size':12})
             if i%2==0:
                     ax1.set_ylabel('SHAP value (m)',size=13)
             else:
@@ -332,7 +368,7 @@ def dist_commute(city):
                     ax2.hist(xs,bins=30,color='gray',alpha=0.15)
                     ax2.set_ylim(0,len(data))
             ax2.set_yticks([])
-    plt.suptitle("SHAP values for most important UF features, " + city,y=0.92,size=16)
+    plt.suptitle(let + ") SHAP values for most important UF features, " + citylab,y=0.92,size=16)
     plt.savefig('../outputs/ML_Results/result_figures/dist_commute/' + city + '_main.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
 
@@ -346,6 +382,6 @@ def dist_commute(city):
     with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
         pickle.dump(df, h)
 
-cities=pd.Series(['Wien'])
 #cities=pd.Series(cities_all)
+cities=pd.Series(['Paris','Toulouse','Madrid','Wien','France_other','Germany_other'])
 cities.apply(dist_commute)

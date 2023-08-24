@@ -480,6 +480,7 @@ sHPW.loc[(sHPW['Trip_Distance']>=4000)&(sHPW['Trip_Distance']<8000),'Trip_Distan
 sHPW.loc[(sHPW['Trip_Distance']>=8000),'Trip_Distance_Cat']='8+'
 
 # plot trip mode by distance
+citylab='Vienna'
 mode_dist=sHPW.loc[:,('Mode','Trip_Distance_Cat','Trip_Purpose')].groupby(['Mode','Trip_Distance_Cat']).count().unstack('Mode').reset_index()
 mode_dist.columns = ['_'.join(col) for col in mode_dist.columns.values]
 mode_dist.reset_index(inplace=True,drop=True)
@@ -492,7 +493,7 @@ mode_dist_pc.columns=[col.replace('Trip_Weight_','') for col in mode_dist_pc.col
 mode_dist_pc.loc[:,('2_3_Wheel','Bike','Car','Foot','Transit')]=100*mode_dist_pc.loc[:,('2_3_Wheel','Bike','Car','Foot','Transit')]/sHPW.loc[:,('Trip_Weight')].sum()
 fig, ax = plt.subplots()
 mode_dist.plot(kind='bar',stacked=True,ax=ax)
-ax.set_title('Trip Mode by Distance, '+city,color='black',fontsize=16)
+ax.set_title('Trip Mode by Distance, '+citylab,color='black',fontsize=16)
 handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=12)
 ax.set_xticklabels(mode_dist['Trip_Distance_Cat_'].values)
@@ -503,7 +504,7 @@ fig.savefig('../figures/bars/'+ city+'_ModeDistance.png',facecolor='w',bbox_inch
 
 fig, ax = plt.subplots()
 mode_dist_pc.plot(kind='bar',stacked=True,ax=ax)
-ax.set_title('Trip Mode by Distance, '+city,color='black',fontsize=20)
+ax.set_title('Trip Mode by Distance, '+citylab,color='black',fontsize=20)
 ax.set_ylim(0,50)
 handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles[::-1], labels[::-1],bbox_to_anchor=(1.0, 1.0),fontsize=14)
@@ -578,5 +579,5 @@ axp.set_xticklabels(mode_purp['Trip_Purpose_Agg'].unique())
 plt.sca(axp)
 plt.xticks(rotation=45,fontsize=12,ha='right',rotation_mode='anchor')
 
-fig.suptitle("Trip Mode by Purpose & Distance, " + city, fontsize=22,y=0.95)
+fig.suptitle("Trip Mode by Purpose & Distance, " + citylab, fontsize=22,y=0.95)
 fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
