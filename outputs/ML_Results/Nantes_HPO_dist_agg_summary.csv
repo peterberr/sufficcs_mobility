@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.632,0.138,100,0.6600486557836951,0.7348210548689191,Nantes
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.632,0.138,100,0.6695768626199752,0.7390339690597164,Nantes

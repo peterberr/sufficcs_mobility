@@ -33,7 +33,7 @@ def dist_agg(city):
         df0=df0.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
         #'PopDensity_res','BuildDensity_res', 
         'UrbPopDensity_res', 'UrbBuildDensity_res',
-        'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+        'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
         'LU_Comm_res',  'Commute_Trip','Age','Trip_Distance']] # 'LU_Road_res', 'LU_Urban_res',
         df0['City']=city0
         df_all=df0.copy()
@@ -47,7 +47,7 @@ def dist_agg(city):
                 df1=df1.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
                 #'PopDensity_res','BuildDensity_res', 
                 'UrbPopDensity_res', 'UrbBuildDensity_res',
-                'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                 'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
                 #print(len(df1.columns), 'columns in the data for ', city1)
                 df1['City']=city1
@@ -64,7 +64,7 @@ def dist_agg(city):
         df0=df0.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
         #'PopDensity_res','BuildDensity_res', 
         'UrbPopDensity_res', 'UrbBuildDensity_res',
-        'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+        'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
         'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
         #print(len(df0.columns), 'columns in the data for ', city0)
         df0['City']=city0
@@ -79,7 +79,7 @@ def dist_agg(city):
                 df1=df1.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
                 #'PopDensity_res','BuildDensity_res', 
                 'UrbPopDensity_res', 'UrbBuildDensity_res',
-                'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                 'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
         #print(len(df0.columns), 'columns in the data for ', city0)
                 print(len(df1.columns), 'columns in the data for ', city1)
@@ -96,7 +96,7 @@ def dist_agg(city):
             df_UF=df.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res',
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res',
-                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                             'LU_Comm_res', 'Commute_Trip','Age','Trip_Distance']]
 
     count=df_UF.groupby('Res_geocode')['Trip_Distance'].count().reset_index()
@@ -169,7 +169,7 @@ def dist_agg(city):
     r2ml=[]
     r2lr=[]
 
-    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res + bike_lane_share_res  + Commute_Trip + Age"
+    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age" # + bike_lane_share_res
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_LR/'  + city + '.xlsx', engine='openpyxl')
     for train_idx, test_idx in cv.split(X): # select here 
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]

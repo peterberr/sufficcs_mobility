@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,200,-20.556,56.957,11,-0.3927307485560061,-29.031549562534472,Kassel
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,200,-20.556,56.957,11,-0.392730255222538,-35.30440555002794,Kassel

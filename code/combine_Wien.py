@@ -288,6 +288,9 @@ lu=pd.read_csv('../outputs/LU/UA_' + city + '.csv',dtype={'geocode':str})
 # decide which lu varibales to use
 lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
 
+# transit access
+transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+
 # now merge all urban form features with the survey data.
 
 # population density origin
@@ -335,6 +338,16 @@ sHPW_UF=sHPW_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy()
 sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res','pc_road':'LU_Road_res',
 'pc_urban':'LU_Urban_res'},inplace=True)
+
+# transit stats, origin
+sHPW_UF=sHPW_UF.merge(transit,left_on='Ori_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
+
+# transit stats, res
+sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
+sHPW_UF.drop(columns='geocode',inplace=True)
+sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 
 # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
 # sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_UrbFab_origin']

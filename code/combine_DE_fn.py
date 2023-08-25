@@ -221,6 +221,9 @@ def combine_survey_data(city):
     # decide which lu varibales to use
     lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
 
+    # transit access
+    transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+
     # now merge all urban form features with the survey data.
 
     # population density origin
@@ -311,6 +314,16 @@ def combine_survey_data(city):
     sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Res_geocode',right_on='Res_geocode').copy() 
     #sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
     sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_res'},inplace=True)
+
+    # transit stats, origin
+    sHPW_UF=sHPW_UF.merge(transit,left_on='Ori_Plz',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
+
+    # transit stats, res
+    sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 
     # rename columns for consistency
     sHPW_UF.rename(columns={'Ori_Plz':'Ori_geocode','Des_Plz':'Des_geocode'},inplace=True)
@@ -426,6 +439,12 @@ def combine_survey_data(city):
     # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
     sH2_UF['UrbPopDensity']=sH2_UF['PopDensity']/sH2_UF['LU_Urban']
     sH2_UF['UrbBuildDensity']=sH2_UF['BuildDensity']/sH2_UF['LU_Urban']
+
+    # transit access   
+    sH2_UF=sH2_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
+    sH2_UF.drop(columns='geocode',inplace=True)
+    sH2_UF.rename(columns={'score_spatiotemporal':'transit_accessibility'},inplace=True)
+
     sH2_UF.to_csv('../outputs/Combined/' + city + '_co_UF.csv',index=False)
     
     # now create and save some summary stats by postcode ######

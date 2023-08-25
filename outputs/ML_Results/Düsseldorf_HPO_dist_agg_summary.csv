@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.3,0.416,37,0.4521849767365599,0.4693409613309725,Düsseldorf
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.3,0.416,37,0.4493943043515858,0.46933498804626006,Düsseldorf

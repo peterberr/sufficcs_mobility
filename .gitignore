@@ -11,3 +11,4 @@
 /outputs/ML_Results/shap/*
 /source/GTFS/*
 /outputs/transit-access-eu/*
+*dist_agg_new*

@@ -32,7 +32,7 @@ def dist_commute(city):
                     'Sex', 'Occupation', 'Education','Age',
                     #'PopDensity_res','BuildDensity_res',
                     'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
-                    'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                    'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                     'LU_Comm_res' ,'Trip_Distance']]
         df0['City']=city0
         df_all=df0.copy()
@@ -47,7 +47,7 @@ def dist_commute(city):
                             'Sex', 'Occupation', 'Education','Age',
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
-                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                             'LU_Comm_res','Trip_Distance']]
                 df1['City']=city1
                 if len(df1.columns==df_all.columns):
@@ -67,7 +67,7 @@ def dist_commute(city):
                     'Sex', 'Occupation', 'Education','Age',
                     #'PopDensity_res','BuildDensity_res',
                     'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
-                    'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                    'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                     'LU_Comm_res', 'Trip_Distance']]
         df0['City']=city0
         df_all=df0.copy()
@@ -81,7 +81,7 @@ def dist_commute(city):
                             'Sex', 'Occupation', 'Education','Age',
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
-                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                             'LU_Comm_res', 'Trip_Distance']]
                 df1['City']=city1
                 if len(df1.columns==df_all.columns):
@@ -102,7 +102,7 @@ def dist_commute(city):
                             'Sex', 'Occupation', 'Education','Age',
                             #'PopDensity_res','BuildDensity_res',
                             'UrbPopDensity_res', 'UrbBuildDensity_res','DistSubcenter_res', 'DistCenter_res',
-                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res','bike_lane_share_res',
+                            'IntersecDensity_res', 'street_length_res', 'LU_UrbFab_res',#'bike_lane_share_res',
                             'LU_Comm_res', 'Trip_Distance']]
     # restrict to trips between home and work (commuting trips)        
     df_UF=df_UF.loc[df_UF['Trip_Purpose_Agg']=='Home↔Work',]
@@ -209,7 +209,7 @@ def dist_commute(city):
         learning_rate=lr_parameter_all)
     
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_commute/'  + city + '.xlsx', engine='openpyxl')
-    form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season +  FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res + FeatureD_bike_lane_share_res"
+    form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season +  FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res" # + FeatureD_bike_lane_share_res"
 
     for train_idx, test_idx in cv.split(X,groups=gr): # select here 
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -382,6 +382,6 @@ def dist_commute(city):
     with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
         pickle.dump(df, h)
 
-#cities=pd.Series(cities_all)
-cities=pd.Series(['Paris','Toulouse','Madrid','Wien','France_other','Germany_other'])
+cities=pd.Series(cities_all)
+#cities=pd.Series(['Paris','Toulouse','Madrid','Wien','France_other','Germany_other'])
 cities.apply(dist_commute)

@@ -1,0 +1,2 @@
+CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
+kf_gridSearch,full,9splits,0.1,4,100,0.741,0.008,16021,0.757619622806815,0.7455992487196877,Berlin

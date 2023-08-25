@@ -352,6 +352,9 @@ def combine_survey_data(city):
     # decide which lu varibales to use
     lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
 
+    # transit access
+    transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+
     # now merge all urban form features with the survey data.
     # population density origin
     sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_geocode',right_on='geocode').copy()
@@ -429,6 +432,16 @@ def combine_survey_data(city):
 
     sHPW_UF['UrbBuildDensity_origin']=sHPW_UF['BuildDensity_origin']/sHPW_UF['LU_Urban_origin']
     sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res']
+
+    # transit stats, origin
+    sHPW_UF=sHPW_UF.merge(transit,left_on='Ori_geocode',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
+
+    # transit stats, res
+    sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
+    sHPW_UF.drop(columns='geocode',inplace=True)
+    sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 
     sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
 
@@ -704,6 +717,11 @@ def combine_survey_data(city):
         sH2_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab','pc_comm':'LU_Comm','pc_road':'LU_Road',
         'pc_urban':'LU_Urban'},inplace=True)
 
+        # transit access   
+        sH2_UF=sH2_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
+        sH2_UF.drop(columns='geocode',inplace=True)
+        sH2_UF.rename(columns={'score_spatiotemporal':'transit_accessibility'},inplace=True)
+
         # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
         sH2_UF['UrbPopDensity']=sH2_UF['PopDensity']/sH2_UF['LU_Urban']
         sH2_UF['UrbBuildDensity']=sH2_UF['BuildDensity']/sH2_UF['LU_Urban']
@@ -823,6 +841,6 @@ def combine_survey_data(city):
         fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
 
 
-cities=pd.Series(['Clermont','Toulouse'])
+cities=pd.Series(['Clermont', 'Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)

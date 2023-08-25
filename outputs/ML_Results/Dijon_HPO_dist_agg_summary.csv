@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,300,0.574,0.257,45,0.6686775913018885,0.7846186807844823,Dijon
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,300,0.574,0.257,45,0.617252714796459,0.7958513919286059,Dijon
