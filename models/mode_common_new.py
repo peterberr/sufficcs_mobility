@@ -120,7 +120,7 @@ def mode_model(city):
         'HHSize', #'IncomeDetailed', 'HHType', # household details
         'Sex', 'Occupation', 'Education','Age', # personal details, only use age for now, not age group, check later what works beter
         'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin',
-        'IntersecDensity_origin', 'street_length_origin', 'bike_lane_share_origin',
+        'IntersecDensity_origin', 'street_length_origin', 'bike_lane_share_origin','transit_accessibility_origin',
         'LU_UrbFab_origin','LU_Comm_origin',    # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest', 'LU_Urban_origin','LU_Urban_dest', 
         # target: Trip_Distance
         'Mode')
@@ -428,7 +428,7 @@ def mode_model(city):
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common_new/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-cities_list=pd.Series(['Germany_other']) 
+cities_list=pd.Series(['Madrid']) 
 #cities_list=pd.Series(cities_all) 
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

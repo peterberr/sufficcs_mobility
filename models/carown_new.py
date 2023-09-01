@@ -147,7 +147,7 @@ def carown_model(city):
         HPO_summary=pd.DataFrame([r8],columns=['CV_Type','Sample','CV_params','LR','MD','N','F1_best','SD_best','N_obs']) # the last element in this case is the sd of f1 scores in the fold which produced best results
 
     # now redo the CV and calculate the SHAP values with the best HPs
-    cv = KFold(n_splits=9,shuffle=True)
+    cv = KFold(n_splits=9,shuffle=True, random_state=2)
 
     y_predict = pd.DataFrame()
     y_predict2 = pd.DataFrame()
@@ -305,7 +305,7 @@ def carown_model(city):
 
     lab_dict= {'DistCenter':'Dist. to city center (km)','IntersecDensity':'Instersection density','street_length':'Avg. street length','bike_lane_share':'Cycle lane share',
        'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter','LU_Urban':'Urban share, land-use',
-       'transit_accessibility':'Transit Accessibility',
+       'transit_accessibility':'Transit Accessibility','HHType_simp_Single_Female':'Single female household','UniversityEducation':'University education',
        'IncomeDetailed_Numeric':'Income','HHSize':'Household size','maxAgeHH':'Max householder age','InEmployment':'Employed'}
 
     importance_df['column_label']=importance_df['column_name'].map(lab_dict)
@@ -390,6 +390,5 @@ def carown_model(city):
     plt.close() 
 
 cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
-#cities=pd.Series(['Clermont','Paris','Toulouse','France_other','Germany_other'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

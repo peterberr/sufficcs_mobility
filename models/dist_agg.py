@@ -314,6 +314,50 @@ def dist_agg(city):
     plt.savefig('../outputs/ML_Results/result_figures/dist_agg/' + city + '_main.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
 
+    if city == 'Berlin': let='a'
+    if city == 'Paris': let='b'
+    if city == 'Madrid': let='c'
+    if city == 'Wien': let='d'
+    if city == 'Germany_other': let='e'
+    if city == 'France_other': let='f'
+    if city == 'All': let='g'
+    else: let='0'
+
+    fig = plt.figure(figsize=(11,12))
+    for i in range(0,6):
+            ax1 = fig.add_subplot(321+i)
+            xs=data.iloc[:,i]
+            ys=values.iloc[:,i]
+            x=xl[i]
+            y1=y0[i]
+            y2=yl[i]
+            xlab=data.columns[i]
+
+            #ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
+            ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
+            plt.plot(x,y1,'k:',label='zero')
+
+            #plt.legend(loc="upper left",prop={'size':12})
+            if (xlab== 'Built-up density') & (city == 'Germany_other'):
+                plt.xlim([0, 2e7])
+            if i%2==0:
+                    ax1.set_ylabel('SHAP value (m)',size=14)
+            else:
+                    ax1.set_ylabel('')
+            ax1.set_xlabel(xlab,size=14)
+
+            ax2 = ax1.twinx() 
+            if len(xs.unique())==2:
+                    ax2.hist(xs,bins=[-0.5,0.5,1.5], align='mid',color='gray',alpha=0.25)
+                    ax2.set_xticks([-.5,0,0.5,1,1.5])
+            else:
+                    ax2.hist(xs,bins=30,color='gray',alpha=0.15)
+                    ax2.set_ylim(0,len(data))
+            ax2.set_yticks([])
+    plt.suptitle(let + ') ' +  "Most important UF features for avg. trip distance, " + city.replace('_',', '),y=0.92,size=16)
+    plt.savefig('../outputs/ML_Results/result_figures/dist_agg/' + city + '_main6.png',facecolor='w',dpi=65,bbox_inches='tight')
+    plt.close()
+
     # save shap_values, to enable later re-creation and editing of shap plots
     with open('../outputs/ML_Results/shap/dist_agg/' + city + '.pkl', 'wb') as f:
             pickle.dump(shap_values, f)

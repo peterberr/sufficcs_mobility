@@ -325,6 +325,10 @@ def combine_survey_data(city):
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 
+    # recalculate for urban areas
+    sHPW_UF['Urb_transit_accessibility_origin']=sHPW_UF['transit_accessibility_origin']/sHPW_UF['LU_Urban_origin']
+    sHPW_UF['Urb_transit_accessibility_res']=sHPW_UF['transit_accessibility_res']/sHPW_UF['LU_Urban_res']
+
     # rename columns for consistency
     sHPW_UF.rename(columns={'Ori_Plz':'Ori_geocode','Des_Plz':'Des_geocode'},inplace=True)
 
@@ -444,6 +448,7 @@ def combine_survey_data(city):
     sH2_UF=sH2_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
     sH2_UF.drop(columns='geocode',inplace=True)
     sH2_UF.rename(columns={'score_spatiotemporal':'transit_accessibility'},inplace=True)
+    sH2_UF['Urb_transit_accessibility']=sH2_UF['transit_accessibility']/sH2_UF['LU_Urban']
 
     sH2_UF.to_csv('../outputs/Combined/' + city + '_co_UF.csv',index=False)
     
