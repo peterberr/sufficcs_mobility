@@ -54,8 +54,8 @@ var_dict_W={'HHNR':'HHNR','Person':'PNR','Trip':'WNR', # Variables related to ad
 'Date':'STICHTAG_DATUM', 'Day':'STICHTAG_WTAG','Time':'V_BEGINN_STUNDE','Minute':'V_BEGINN_MINUTE',
 'Trip_Purpose':'E_QZG_17','Ori_Reason':'E_START_ZWECK','Des_Reason':'V_ZWECK',
 'Trip_Purpose_Agg':'E_QZG_17',
-'N_accomp_HH':'V_BEGLEITUNG_HH','N_others_Car':'V_F_ANZAHL','Mode_Detailed':'E_HVM','Ori_Reason_Detailed':'E_START_ZWECK','Des_Reason_Detailed':'V_ZWECK',
-'Mode':'E_HVM','Trip_Distance':'V_LAENGE','Trip_Distance_GIS':'GIS_LAENGE','Trip_Distance_GIS_valid':'GIS_LAENGE_GUELTIG','Trip_Duration':'E_DAUER','Trip_Weight':'GEWICHT_W',
+'N_accomp_HH':'V_BEGLEITUNG_HH','N_accomp_nonHH':'V_BEGLEITUNG_AND','N_others_Car':'V_F_ANZAHL','Mode_Detailed':'E_HVM','Ori_Reason_Detailed':'E_START_ZWECK','Des_Reason_Detailed':'V_ZWECK',
+'Mode':'E_HVM','Mode_disagg':'E_HVM','Trip_Distance':'V_LAENGE','Trip_Distance_GIS':'GIS_LAENGE','Trip_Distance_GIS_valid':'GIS_LAENGE_GUELTIG','Trip_Duration':'E_DAUER','Trip_Weight':'GEWICHT_W',
 }
 
 value_dict_W={'HHNR': {}, 'Person': {},'Trip': {}, # Variables related to administrative boundary units and identifiers
@@ -69,12 +69,13 @@ value_dict_W={'HHNR': {}, 'Person': {},'Trip': {}, # Variables related to admini
 10:'Service_Facility',11:'Companion',12:'Leisure_Culture',13:'Leisure_Food',14:'Leisure_Visit',15:'Leisure_Outdoors',16:'Leisure_Sport',17:'Leisure_Other',18:'Home',70:'Other',-7:'Other'},
 'Des_Reason':{1:'Work',2:'Other',3:'Kindergarten',4:'School',5:'School',6:'University/College',7:'University/College',8:'Shopping_Daily',9:'Shopping_Other',
 10:'Service_Facility',11:'Companion',12:'Leisure_Culture',13:'Leisure_Food',14:'Leisure_Visit',15:'Leisure_Outdoors',16:'Leisure_Sport',17:'Leisure_Other',18:'Home',70:'Other',-7:'Other'},
-'N_accomp_HH':{},'N_others_Car':{},'Mode_Detailed':{},'Ori_Reason_Detailed':{},'Des_Reason_Detailed':{},
+'N_accomp_HH':{},'N_accomp_nonHH':{},'N_others_Car':{},'Mode_Detailed':{},'Ori_Reason_Detailed':{},'Des_Reason_Detailed':{},
 'Mode':{1:'Foot',2:'Bike',18:'Bike',19:'Bike',3:'2_3_Wheel',4:'Car',5:'Car',6:'Car',7:'Car',8:'Car',9:'Car',10:'Transit',11:'Transit',12:'Transit',13:'Transit',14:'Transit',15:'Transit',16:'Car'}, # 
+'Mode_disagg':{1:'Foot',2:'Bike',18:'Bike',19:'Bike',3:'2_3_Wheel',4:'Car',5:'Car',6:'Car',7:'Car',8:'Car',9:'Car',10:'Bus',11:'Tram',12:'UBahn',13:'SBahn',14:'Train',15:'Train',16:'Car',17:'Bus'},
 'Trip_Distance':{},'Trip_Distance_GIS':{},'Trip_Distance_GIS_valid':{-1:1,0:0},'Trip_Duration':{},'Trip_Weight':{}
 }
 
-na_dict_W={'Trip_Purpose':'Other','Trip_Purpose_Agg':'Other','Ori_Reason':'Other','Des_Reason':'Other','Mode':'Other'}
+na_dict_W={'Trip_Purpose':'Other','Trip_Purpose_Agg':'Other','Ori_Reason':'Other','Des_Reason':'Other','Mode':'Other','Mode_disagg':'Other'}
 
 # Combine variable, value, and na dictionaries
 var_all = {'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
