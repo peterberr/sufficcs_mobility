@@ -318,7 +318,8 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Paris': # first do for Paris 
-        # define boundary as Paris, plus departments Hauts-de-Seine, Seine-St Deint, and Val-de-Marne, plus selected communes in the departments of Essonne and Val-d'Oise
+        # define boundary as Paris, plus departments Hauts-de-Seine, Seine-St Deint, and Val-de-Marne, plus selected communes in the departments of Essonne and Val-d'Oise. 
+        # Based on definition of Métropole du Grand Paris https://en.wikipedia.org/wiki/Paris
         deps=['75','92','93','94']
         ext_com=['91027','91326','91432','91479','91589','91687','95018']
         survey_yr=2010
@@ -407,14 +408,23 @@ def french_density_shapefiles(city,size_thresh):
         sec_pop17['P17_POP']=round(sec_pop17['P17_POP'])
         sec_pop=sec_pop.merge(sec_pop17)
 
+        # get 2010 populations for Paris
+        fp='../../MSCA_data/France_population_new/Paris_all_commune_2010.csv'
+        pop10=pd.read_csv(fp,encoding='latin-1')
+        pop10['geo_unit']=pop10['geo_unit'].astype(str)
+
+        sec_pop=sec_pop.merge(pop10)
+
         # merge the sum populations into the low-res gdf2
         gdf2=gdf2.merge(sec_pop)
+        # for Paris, we use 2010 population
+        gdf2['Population']=gdf2['P10_POP']
 
-        if survey_yr in [2010,2011,2012,2013,2014]:
-            gdf2['Population']=gdf2['P12_POP']
+        # if survey_yr in [2012,2013,2014]:
+        #     gdf2['Population']=gdf2['P12_POP']
 
-        if survey_yr in [2015,2016,2017,2018]:
-            gdf2['Population']=gdf2['P17_POP']
+        # if survey_yr in [2015,2016,2017,2018]:
+        #     gdf2['Population']=gdf2['P17_POP']
 
         gdf2['Density']=gdf2['Population']/gdf2['area']
 
@@ -444,8 +454,12 @@ def french_density_shapefiles(city,size_thresh):
 
         if (any(gdfj['Density_2017'].isna()) == False) & (any(gdfj['Density_2012'].isna()) == False):
             print(city + ' merged without loss of any IRIS population data')
-        # sub in 2017 data where 2012 data is na
-        gdfj.loc[gdfj['Density_2012'].isna(),'Density_2012']=gdfj.loc[gdfj['Density_2012'].isna(),'Density_2017']
+        # sub in 2017 data where 2012-2016 data is na
+        # gdfj.loc[gdfj['Density_2012'].isna(),'Density_2012']=gdfj.loc[gdfj['Density_2012'].isna(),'Density_2017']
+        # gdfj.loc[gdfj['Density_2013'].isna(),'Density_2013']=gdfj.loc[gdfj['Density_2013'].isna(),'Density_2017']
+        # gdfj.loc[gdfj['Density_2014'].isna(),'Density_2014']=gdfj.loc[gdfj['Density_2014'].isna(),'Density_2017']
+        # gdfj.loc[gdfj['Density_2015'].isna(),'Density_2015']=gdfj.loc[gdfj['Density_2015'].isna(),'Density_2017']
+        # gdfj.loc[gdfj['Density_2016'].isna(),'Density_2013']=gdfj.loc[gdfj['Density_2016'].isna(),'Density_2017']
         gdfj['area']=gdfj['area_cell']*1e-6
         gdfj.drop(columns='area_cell',inplace=True)
 
@@ -579,13 +593,31 @@ def french_density_shapefiles(city,size_thresh):
         sec_pop17['P17_POP']=round(sec_pop17['P17_POP'])
         sec_pop=sec_pop.merge(sec_pop17)
 
+        # interpolate to get population in bw 2012 and 2017 if necessary.
+        xp=[2012, 2017]
+        sec_pop['P13_POP']=sec_pop['P14_POP']=sec_pop['P15_POP']=sec_pop['P16_POP']=np.nan
+        for gu in sec_pop['geo_unit']:
+            yp=sec_pop.loc[sec_pop['geo_unit']==gu,['P12_POP','P17_POP']].values[0]
+            sec_pop.loc[sec_pop['geo_unit']==gu,['P13_POP','P14_POP','P15_POP','P16_POP']]=np.interp([2013,2014,2015,2016],xp,yp)
+
         # mergre the sum populations into the low-res gdf2
         gdf2=gdf2.merge(sec_pop)
-
-        if survey_yr in [2010,2011,2012,2013,2014]:
+        if survey_yr==2012:
             gdf2['Population']=gdf2['P12_POP']
 
-        if survey_yr in [2015,2016,2017,2018]:
+        if survey_yr==2013:
+            gdf2['Population']=gdf2['P13_POP']
+
+        if survey_yr==2014:
+            gdf2['Population']=gdf2['P14_POP']
+
+        if survey_yr==2015:
+            gdf2['Population']=gdf2['P15_POP']
+
+        if survey_yr==2016:
+            gdf2['Population']=gdf2['P16_POP']
+
+        if survey_yr==2017:
             gdf2['Population']=gdf2['P17_POP']
 
         gdf2['Density']=gdf2['Population']/gdf2['area']
@@ -620,6 +652,13 @@ def french_density_shapefiles(city,size_thresh):
         if (any(gdfj['Density_2017'].isna()) == False) & (any(gdfj['Density_2012'].isna()) == False):
             print(city + ' merged without loss of any IRIS population data')
 
+        # interpolate again, this time of densities at the high-res level
+        xp=[2012, 2017]
+        gdfj['Density_2013']=gdfj['Density_2014']=gdfj['Density_2015']=gdfj['Density_2016']=np.nan
+        for gu in gdfj['geo_unit_highres']:
+            yp=gdfj.loc[gdfj['geo_unit_highres']==gu,['Density_2012','Density_2017']].values[0]
+            gdfj.loc[gdfj['geo_unit_highres']==gu,['Density_2013','Density_2014','Density_2015','Density_2016']]=np.interp([2013,2014,2015,2016],xp,yp)
+
         # check for 0 areas in gdfj, and if they exist, 'fold' them into the containing polygons
         if any(gdfj['area']==0) | any(gdfj['geometry'].geom_type.values == 'Point'):
             point_code2=pd.DataFrame(gdfj.loc['Point' == gdfj['geometry'].geom_type.values,'geo_unit_highres'])
@@ -643,11 +682,27 @@ def french_density_shapefiles(city,size_thresh):
         sub=gdfj.loc[gdfj['geo_unit'].isin(large),]
 
         # reformat sub to be concatenated with gdf2
-        if survey_yr in [2010,2011,2012,2013,2014]:
+        if survey_yr==2012:
             sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2012','DCOMIRIS']]
             sub.rename(columns={'geo_unit_highres':'geocode','Density_2012':'Density'},inplace=True)
 
-        if survey_yr in [2015,2016,2017,2018]:
+        if survey_yr==2013:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2013','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2013':'Density'},inplace=True)
+
+        if survey_yr==2014:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2014','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2014':'Density'},inplace=True)
+
+        if survey_yr==2015:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2015','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2015':'Density'},inplace=True)
+
+        if survey_yr==2016:
+            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2016','DCOMIRIS']]
+            sub.rename(columns={'geo_unit_highres':'geocode','Density_2016':'Density'},inplace=True)
+
+        if survey_yr==2017:
             sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2017','DCOMIRIS']]
             sub.rename(columns={'geo_unit_highres':'geocode','Density_2017':'Density'},inplace=True)
 
@@ -714,6 +769,7 @@ def french_density_shapefiles(city,size_thresh):
         plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
         ax.add_artist(ScaleBar(1)) 
         plt.savefig('../outputs/density_geounits/'+ city + '_mixed.png',facecolor='w')
+        plt.close()
 
         # save a figure of the high resolution geounits
         fig, ax = plt.subplots(figsize=(10,10))
@@ -721,12 +777,14 @@ def french_density_shapefiles(city,size_thresh):
         plt.title("High resolution (blue) resolution geo-units: " + city) 
         ax.add_artist(ScaleBar(1))
         plt.savefig('../outputs/density_geounits/'+ city + '_high.png',facecolor='w')
+        plt.close()
         # save a figure of the low resolution geounit
         fig, ax = plt.subplots(figsize=(10,10))
         gdf2.plot(ax=ax,edgecolor='black')
         plt.title("Aggregated (blue) resolution geo-units: " + city) 
         ax.add_artist(ScaleBar(1))                   
         plt.savefig('../outputs/density_geounits/'+ city + '_low.png',facecolor='w')
+        plt.close()
 
         # save geodataframes and dictionary
         # save the shapefiles of population by aggregated sector
@@ -777,5 +835,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Lille'])
+cities=pd.Series(['Paris'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid
