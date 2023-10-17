@@ -369,6 +369,6 @@ def dist_agg(city):
             pickle.dump(df_agg, h)
 
 
-#cities=pd.Series(['Potsdam'])
-cities=pd.Series(cities_all)
+cities=pd.Series(['Berlin'])
+#cities=pd.Series(cities_all)
 cities.apply(dist_agg)

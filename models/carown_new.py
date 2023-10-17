@@ -389,6 +389,7 @@ def carown_model(city):
     plt.savefig('../outputs/ML_Results/result_figures/carown_new/' + city + '_FI_detail6.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close() 
 
-cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
+#cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
+cities=pd.Series(['Berlin'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

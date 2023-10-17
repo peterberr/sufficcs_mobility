@@ -320,38 +320,38 @@ transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode
 # now merge all urban form features with the survey data.
 
 # population density origin
-sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_geocode',right_on='geocode').copy()
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'Density':'PopDensity_origin'},inplace=True)
+# sHPW_UF=sHPW.merge(pop_dens,left_on='Ori_geocode',right_on='geocode').copy()
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'Density':'PopDensity_origin'},inplace=True)
 # population density destination
-sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Des_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'Density':'PopDensity_dest'},inplace=True)
+# sHPW_UF=sHPW.merge(pop_dens,left_on='Des_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'Density':'PopDensity_dest'},inplace=True)
 # population density residential
-sHPW_UF=sHPW_UF.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy()
+sHPW_UF=sHPW.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy()
 sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'Density':'PopDensity_res'},inplace=True)
 
 # buidling density and distance to centers origin
-sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_geocode',right_on='geocode').copy() 
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_origin','Distance2Center':'DistCenter_origin','build_vol_density':'BuildDensity_origin'},inplace=True)
+# sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_geocode',right_on='geocode').copy() 
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_origin','Distance2Center':'DistCenter_origin','build_vol_density':'BuildDensity_origin'},inplace=True)
 # buidling density and distance to centers destination
-sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Des_geocode',right_on='geocode').copy() 
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_dest','Distance2Center':'DistCenter_dest','build_vol_density':'BuildDensity_dest'},inplace=True)
-# buidling density and distance to centers residentil
+# sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Des_geocode',right_on='geocode').copy() 
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_dest','Distance2Center':'DistCenter_dest','build_vol_density':'BuildDensity_dest'},inplace=True)
+# buidling density and distance to centers residential
 sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy()
 sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_res','Distance2Center':'DistCenter_res','build_vol_density':'BuildDensity_res'},inplace=True)
 
 # connectivity stats, origin
-sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_geocode',right_on='geocode').copy() 
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_origin',
-                        'street_length_avg':'street_length_origin',
-                        'streets_per_node_avg':'streets_per_node_origin',
-                        'bike_lane_share':'bike_lane_share_origin'},inplace=True)
+# sHPW_UF=sHPW_UF.merge(conn,left_on='Ori_geocode',right_on='geocode').copy() 
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_origin',
+#                         'street_length_avg':'street_length_origin',
+#                         'streets_per_node_avg':'streets_per_node_origin',
+#                         'bike_lane_share':'bike_lane_share_origin'},inplace=True)
 
 # connectivity stats, residential
 sHPW_UF=sHPW_UF.merge(conn,left_on='Res_geocode',right_on='geocode').copy() 
@@ -362,25 +362,25 @@ sHPW_UF.rename(columns={'clean_intersection_density_km':'IntersecDensity_res',
                         'bike_lane_share':'bike_lane_share_res'},inplace=True)
 
 # land-use stats, origin
-sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_geocode',right_on='geocode').copy() 
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_origin','pc_comm':'LU_Comm_origin','pc_road':'LU_Road_origin',
-'pc_urban':'LU_Urban_origin'},inplace=True)
+# sHPW_UF=sHPW_UF.merge(lu,left_on='Ori_geocode',right_on='geocode').copy() 
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_origin','pc_comm':'LU_Comm_origin','pc_road':'LU_Road_origin',
+# 'pc_urban':'LU_Urban_origin'},inplace=True)
 # land-use stats, destination
-sHPW_UF=sHPW_UF.merge(lu,left_on='Des_geocode',right_on='geocode').copy() 
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_dest','pc_comm':'LU_Comm_dest','pc_road':'LU_Road_dest',
-'pc_urban':'LU_Urban_dest'},inplace=True)
+# sHPW_UF=sHPW_UF.merge(lu,left_on='Des_geocode',right_on='geocode').copy() 
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_dest','pc_comm':'LU_Comm_dest','pc_road':'LU_Road_dest',
+# 'pc_urban':'LU_Urban_dest'},inplace=True)
 # land-use stats, res
 sHPW_UF=sHPW_UF.merge(lu,left_on='Res_geocode',right_on='geocode').copy() 
 sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res','pc_road':'LU_Road_res',
 'pc_urban':'LU_Urban_res'},inplace=True)
 
-# transit stats, origin
-sHPW_UF=sHPW_UF.merge(transit,left_on='Ori_geocode',right_on='geocode').copy() 
-sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
+# # transit stats, origin
+# sHPW_UF=sHPW_UF.merge(transit,left_on='Ori_geocode',right_on='geocode').copy() 
+# sHPW_UF.drop(columns='geocode',inplace=True)
+# sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
 
 # transit stats, res
 sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
@@ -388,12 +388,12 @@ sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 
 # recalculate population densities based on urban fabric denominator, and building volume densities based on urban demoninator
-sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_UrbFab_origin']
-sHPW_UF['UrbPopDensity_dest']=sHPW_UF['PopDensity_dest']/sHPW_UF['LU_UrbFab_dest']
+#sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_UrbFab_origin']
+#sHPW_UF['UrbPopDensity_dest']=sHPW_UF['PopDensity_dest']/sHPW_UF['LU_UrbFab_dest']
 sHPW_UF['UrbPopDensity_res']=sHPW_UF['PopDensity_res']/sHPW_UF['LU_Urban_res']
 
-sHPW_UF['UrbBuildDensity_origin']=sHPW_UF['BuildDensity_origin']/sHPW_UF['LU_Urban_origin']
-sHPW_UF['UrbBuildDensity_dest']=sHPW_UF['BuildDensity_dest']/sHPW_UF['LU_Urban_dest']
+#sHPW_UF['UrbBuildDensity_origin']=sHPW_UF['BuildDensity_origin']/sHPW_UF['LU_Urban_origin']
+#sHPW_UF['UrbBuildDensity_dest']=sHPW_UF['BuildDensity_dest']/sHPW_UF['LU_Urban_dest']
 sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res']
 
 sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)

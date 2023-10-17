@@ -16,7 +16,7 @@ import pickle
 
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
-form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education  + FeatureM_UrbPopDensity_origin +  FeatureM_DistSubcenter_origin + FeatureM_DistCenter_origin +  FeatureM_UrbBuildDensity_origin +  FeatureM_IntersecDensity_origin +  FeatureM_street_length_origin +FeatureM_bike_lane_share_origin +  FeatureM_LU_UrbFab_origin + FeatureM_LU_Comm_origin + FeatureM_transit_accessibility_origin" # FeatureM_CarAvailable replaced by FeatureM_CarOwnershipHH
+form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education  + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_IntersecDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res" # FeatureM_CarAvailable replaced by FeatureM_CarOwnershipHH
 
 def mode_model(city):
     country=countries[cities_all.index(city)]
@@ -70,7 +70,7 @@ def mode_model(city):
         
     else:
         df=pd.read_csv('../outputs/Combined/' + city + '_UF.csv')
-    # here we limit to trips starting at home
+    # here we limit to trips starting at home. therefore residential urban form features are same as origin features
     df['Start']=df['trip_type_all'].str[:4]
     df=df.loc[df['Start']=='Home',]
     if country=='Germany':
@@ -83,9 +83,9 @@ def mode_model(city):
             #'TravelAlone',
             'HHSize', #'IncomeDetailed_Numeric', #'IncomeDetailed', 'HHType', # household details
             'Sex',  'Occupation', 'Education','Age', # 'MobilityConstraints',
-            'UrbPopDensity_origin','DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin',# 'MeanTime2Transit_origin',
-            'IntersecDensity_origin', 'street_length_origin','bike_lane_share_origin','transit_accessibility_origin', # 'diff', 'K_avg_origin', 'StreetDensity_origin', 'StreetsPerNode_origin', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
-            'LU_UrbFab_origin','LU_Comm_origin',    # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest',
+            'UrbPopDensity_res','DistSubcenter_res', 'DistCenter_res','UrbBuildDensity_res',# 'MeanTime2Transit_res',
+            'IntersecDensity_res', 'street_length_res','bike_lane_share_res','transit_accessibility_res', # 'diff', 'K_avg_res', 'StreetDensity_res', 'StreetsPerNode_res', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
+            'LU_UrbFab_res','LU_Comm_res',    # urban form features, land-use features are now all from UA. removed 'LU_Road_res', 'LU_Road_dest',
             # target: mode
             'Mode')
             ]
@@ -95,9 +95,9 @@ def mode_model(city):
             'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders, but remove n_others_car as it gives away the mode.     
             'HHSize', #'IncomeDetailed', # household details
             'Sex', 'Occupation', 'Education','Age', #'ParkingAvailable_Dest', # personal details, only use age for now, not age group, check later what works beter. missing 'MobilityConstraints' in FR
-            'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin', # 'DistSubcenter_dest', 'DistCenter_dest', missing time2trans in FR
-            'IntersecDensity_origin', 'street_length_origin', 'bike_lane_share_origin','transit_accessibility_origin',
-            'LU_UrbFab_origin','LU_Comm_origin',   # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest',
+            'UrbPopDensity_res', 'DistSubcenter_res', 'DistCenter_res','UrbBuildDensity_res', # 'DistSubcenter_dest', 'DistCenter_dest', missing time2trans in FR
+            'IntersecDensity_res', 'street_length_res', 'bike_lane_share_res','transit_accessibility_res',
+            'LU_UrbFab_res','LU_Comm_res',   # urban form features, land-use features are now all from UA. removed 'LU_Road_res', 'LU_Road_dest',
             # target: mode
             'Mode')
             ]
@@ -107,9 +107,9 @@ def mode_model(city):
         'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
         'HHSize', # 'IncomeDescriptiveNumeric', #'IncomeDetailed', 'HHType', # household details
         'Sex', 'Occupation', 'Education','Age', # 'ParkingAvailable_Dest', # personal details, only use age for now, not age group, check later what works beter
-        'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin', # 'DistSubcenter_dest', 'DistCenter_dest', 'MeanTime2Transit_origin',
-        'IntersecDensity_origin', 'street_length_origin', 'bike_lane_share_origin', 'transit_accessibility_origin',# 'K_avg_origin', 'StreetDensity_origin', 'StreetsPerNode_origin', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
-        'LU_UrbFab_origin','LU_Comm_origin',     # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest',
+        'UrbPopDensity_res', 'DistSubcenter_res', 'DistCenter_res','UrbBuildDensity_res', # 'DistSubcenter_dest', 'DistCenter_dest', 'MeanTime2Transit_res',
+        'IntersecDensity_res', 'street_length_res', 'bike_lane_share_res', 'transit_accessibility_res',# 'K_avg_res', 'StreetDensity_res', 'StreetsPerNode_res', 'K_avg_dest','StreetDensity_dest', 'StreetsPerNode_dest', 
+        'LU_UrbFab_res','LU_Comm_res',     # urban form features, land-use features are now all from UA. removed 'LU_Road_res', 'LU_Road_dest',
         # target: mode
         'Mode')
         ]
@@ -119,9 +119,9 @@ def mode_model(city):
         'Trip_Time', 'Season','Trip_Purpose_Agg','CarOwnershipHH', 'Trip_Distance', # trip details, keep number of accompanying householders now as 'TravelAlone', but remove n_others_car as it gives away the mode.     
         'HHSize', #'IncomeDetailed', 'HHType', # household details
         'Sex', 'Occupation', 'Education','Age', # personal details, only use age for now, not age group, check later what works beter
-        'UrbPopDensity_origin', 'DistSubcenter_origin', 'DistCenter_origin','UrbBuildDensity_origin',
-        'IntersecDensity_origin', 'street_length_origin', 'bike_lane_share_origin','transit_accessibility_origin',
-        'LU_UrbFab_origin','LU_Comm_origin',    # urban form features, land-use features are now all from UA. removed 'LU_Road_origin', 'LU_Road_dest', 'LU_Urban_origin','LU_Urban_dest', 
+        'UrbPopDensity_res', 'DistSubcenter_res', 'DistCenter_res','UrbBuildDensity_res',
+        'IntersecDensity_res', 'street_length_res', 'bike_lane_share_res','transit_accessibility_res',
+        'LU_UrbFab_res','LU_Comm_res',    # urban form features, land-use features are now all from UA. removed 'LU_Road_res', 'LU_Road_dest', 'LU_Urban_res','LU_Urban_dest', 
         # target: Trip_Distance
         'Mode')
         ]
@@ -348,11 +348,11 @@ def mode_model(city):
     plt.savefig('../outputs/ML_Results/result_figures/mode_common_new/' + city + '_mode_CM.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close() 
 
-    col_dict= {'DistCenter_origin':'Dist. to city center','DistSubcenter_origin':'Dist. to subenter', 'UrbPopDensity_origin':'Population density','UrbBuildDensity_origin':'Built-up density','ParkingAvailable_Dest':'Parking available',
-        'IntersecDensity_origin':'Intersection density','LU_Comm_origin':'Commercial area','LU_UrbFab_origin':'Urban Fabric area','street_length_origin':'Avg. street length','bike_lane_share_origin':'Cycle lanes',
+    col_dict= {'DistCenter_res':'Dist. to city center','DistSubcenter_res':'Dist. to subenter', 'UrbPopDensity_res':'Population density','UrbBuildDensity_res':'Built-up density','ParkingAvailable_Dest':'Parking available',
+        'IntersecDensity_res':'Intersection density','LU_Comm_res':'Commercial area','LU_UrbFab_res':'Urban Fabric area','street_length_res':'Avg. street length','bike_lane_share_res':'Cycle lanes',
         'Trip_Purpose_Agg_Home↔Work':'Commute trip', 'Trip_Purpose_Agg_Home↔Companion':'Companion trip', 'TravelAlone':'Solo trip','Trip_Purpose_Agg_Home↔Leisure':'Leisure trip','Trip_Purpose_Agg_Home↔Shopping':'Shopping trip','Trip_Purpose_Agg_Home↔School':'School trip',
-        'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning trip','transit_accessibility_origin':'Transit Accessibility',
-        'Season_Winter':'Winter season','MeanTime2Transit_origin':'Time to transit', #'diff':'Elevation_diff',
+        'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning trip','transit_accessibility_res':'Transit Accessibility',
+        'Season_Winter':'Winter season','MeanTime2Transit_res':'Time to transit', #'diff':'Elevation_diff',
         'Trip_Distance':'Trip distance','CarOwnershipHH':'Car ownership','Occupation_Student_School':'School Student',
         'Age':'Age','Sex':'Sex','HHSize':'Household size','IncomeDescriptiveNumeric':'Income','IncomeDetailed_Numeric':'Income',
         'Education_University':'University education', 'Occupation_Employed_FullTime':'Employed'}
