@@ -1,79 +1,236 @@
-# script to calculat population density by postcode in German cities
-# last update Peter Berrill June 6 2023
-
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
 import numpy as np
-from pyproj import CRS
+import matplotlib.pyplot as plt
+import itertools
 import pickle
+import rasterio
+from rasterstats import zonal_stats
+from rasterio.merge import merge
+from citymob import import_csv_w_wkt_to_gdf
+from shapely import wkt
 
-# inputs:
-# German city postcode shapefiles and population counts
-# German city-postcode dictionaries, loaded as pickle files
-
-# outputs:
-# population density by municipality
-# summary stats on population, area, and area distribution of postcodes (or other spatial units)
-
-cities=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien']
-countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria']
+cities=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam']
+countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany']
 crs0=3035
+# load in gridded German population from 2011 census
+fp='../../MSCA_data/Germany_population_new/csv_Bevoelkerung_100m_Gitter/Zensus_Bevoelkerung_100m-Gitter.csv'
+pop_grid=pd.read_csv(fp,sep=';')
+pop_grid.loc[pop_grid['Einwohner']==-1,'Einwohner']=np.nan
 
-# german population and shapefile of postcodes is from here https://www.suche-postleitzahl.org/plz-karte-erstellen
-# issue is that it is not dated, it is probably recent, but not matched with the survey data which is 2018. maybe i can get official data for 2018 from https://www.statistikportal.de/de or https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/_inhalt.html
-# more info available here too https://blog.suche-postleitzahl.org/post/132153774751/einwohnerzahl-auf-plz-gebiete-abbilden
-# literature source for DE population in 2018 which we could switch to: https://doi.org/10.1371/journal.pone.0249044
+# load in geodataframe of postcode polygons
+fp='../../sufficcs_mobility/dictionaries/city_postcode_DE_basic.pkl'
+with open(fp,'rb') as f:
+    DE_plz = pickle.load(f)
 
-# german population by postcode
-pa=pd.read_csv('../../MSCA_data/GermanPopulationPostcode/plz-5stellig-daten.csv')
-pa['postcode']=pa['plz'].map(lambda x: str(x).zfill(5))
+def dens_DE(city):
+    print(city)
+    if city=='Dresden':
+        fp='../../MSCA_data/Germany_population_new/Dresden/Stadtteile.csv'
+        df=pd.read_csv(fp,sep=';')
+        df['geometry']=df['shape'].str.replace('SRID=4326;','')
+        df.head()
 
-# germann postcodes gdf
-fp="../shapefiles/plz-5stellig.shp/plz-5stellig.shp"
-de_plz = gpd.read_file(fp)
-de_plz.to_crs(crs0,inplace=True)
-# keep only the desired info from de_plz and pa
-de_plz=de_plz.loc[:,('plz','geometry')].merge(pa.drop(columns='plz'),left_on='plz',right_on='postcode')
-de_plz['area']=de_plz.area*1e-6
-de_plz['Density']=de_plz['einwohner']/de_plz['area']
-de_plz.rename(columns={'plz':'geocode','einwohner':'population'},inplace=True)
+        gdf = gpd.GeoDataFrame(df, geometry=df['geometry'].apply(wkt.loads),crs=4326)
+        gdf.drop(columns=['sst','sst_klar','historie','shape','aend'],inplace=True)
+        gdf.to_crs(3035,inplace=True)
 
-de_plz.sort_values('geocode',inplace=True)
-de_plz.reset_index(drop=True,inplace=True)
-de_plz.drop(columns=(['qkm','postcode']),inplace=True)
+        fp='../../MSCA_data/Germany_population_new/Dresden/Dresden_pop_stadtteile.csv'
+        pop_st=pd.read_csv(fp,encoding='latin-1')
+        pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
 
-# run the function twice, once with teh full dictionary of postcodes, and one with the basic (excluding peripheral postcodes which are outside official city boundary)
-with open('../dictionaries/city_postcode_DE.pkl','rb') as f:
-    city_plz = pickle.load(f)
 
-with open('../dictionaries/city_postcode_DE_basic.pkl','rb') as f:
-    city_plz_basic = pickle.load(f)
+        gdf['blocknr']=gdf['blocknr'].astype(str)
+        gdf=gdf.merge(pop_st.loc[:,['Nummer','2011','2018','2018_2011']],left_on='blocknr',right_on='Nummer',how='left')
+        gdf.rename(columns={'blocknr':'unit_id'},inplace=True)
 
-def dens(city):
-    city_dens=de_plz.loc[de_plz['geocode'].isin(city_plz[city]),:].copy()
-    city_dens.to_csv('../outputs/density_geounits/' + city + '_pop_density.csv',index=False)
-    city_dens2=de_plz.loc[de_plz['geocode'].isin(city_plz_basic[city]),:].copy()
+    if city == 'Leipzig':
+        fp='../../MSCA_data/Germany_population_new/Leipzig/Ortsteile_Leipzig_UTM33N_shp/ot.shp'
+        gdf=gpd.read_file(fp)
+        gdf.to_crs(3035,inplace=True)
 
-    area_lores=pd.DataFrame(city_dens['area'].describe()).reset_index()
-    sums=pd.DataFrame(city_dens[['area','population']].sum()).reset_index()
-    sums=pd.concat([sums,pd.DataFrame([{'index':'density',0:sums.iloc[1,1]/sums.iloc[0,1]}])])
+        fp='../../MSCA_data/Germany_population_new/Leipzig/Bevölkerungsbestand_Einwohner.csv'
+        pop_st=pd.read_csv(fp,encoding='utf-8')
+        pop_st=pop_st.loc[pop_st['Sachmerkmal']=='Einwohner insgesamt',:]
+        pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
 
-    area_lores2=pd.DataFrame(city_dens2['area'].describe()).reset_index()
-    sums2=pd.DataFrame(city_dens2[['area','population']].sum()).reset_index()
-    sums2=pd.concat([sums2,pd.DataFrame([{'index':'density',0:sums2.iloc[1,1]/sums2.iloc[0,1]}])])
+        gdf=gdf.merge(pop_st.loc[:,['Gebiet','2011','2018','2018_2011']],left_on='Name',right_on='Gebiet',how='left')
+        gdf.rename(columns={'OT':'unit_id'},inplace=True)
+        
+    if city == 'Frankfurt am Main':
+            fp='../../MSCA_data/Germany_population_new/Frankfurt am Main/Stadtteile/Stadtteile_Frankfurt.shp'
+            gdf=gpd.read_file(fp)
+            gdf.to_crs(crs0,inplace=True)
 
-    writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
+            # load population data for stadteile (or other spatial unit) 
+            fp='../../MSCA_data/Germany_population_new/Frankfurt am Main/Stadtteile_pop.csv'
+            pop_st=pd.read_csv(fp,encoding='latin-1')
+            pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
 
-    # include all the dfs/sheets here, and then save
-    area_lores.to_excel(writer, sheet_name='area_lores',index=False)
-    sums.to_excel(writer, sheet_name='area_pop_sum',index=False)
+            gdf['STTLNR']=gdf['STTLNR'].astype(int).astype(str)
+            gdf=gdf.merge(pop_st.loc[:,['Codes','2011','2018','2018_2011']],left_on='STTLNR',right_on='Codes',how='left')
+            gdf.rename(columns={'STTLNR':'unit_id'},inplace=True)
+            gdf.drop(columns=['OBJECTID','Codes'],inplace=True)
 
-    area_lores2.to_excel(writer, sheet_name='area_lores_basic',index=False)
-    sums2.to_excel(writer, sheet_name='area_pop_sum_basic',index=False)
+    if city == 'Düsseldorf':
+        fp='../../MSCA_data/Germany_population_new/Düsseldorf/Stadtteile-shp/Düsseldorf_Stadtteile.shp'
+        gdf=gpd.read_file(fp)
+        gdf.to_crs(crs0,inplace=True)
 
-    # Close the Pandas Excel writer and output the Excel file.
-    writer.save()
-    writer.close()
+        # load population data for stadteile (or other spatial unit) 
+        fp='../../MSCA_data/Germany_population_new/Düsseldorf/pop_2011_2018_st.csv'
+        pop_st=pd.read_csv(fp,encoding='latin-1')
+        pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
+        pop_st['Stadtteil']=pop_st['Stadtteil'].astype(str)
 
-cities_DE=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
-cities_DE.apply(dens)
+        gdf['Stadtteil']=gdf['Stadtteil'].astype(int).astype(str)
+        gdf=gdf.merge(pop_st.loc[:,['Stadtteil','2011','2018','2018_2011']],how='left')
+        gdf.rename(columns={'Stadtteil':'unit_id'},inplace=True)
+        gdf.drop(columns=['Quelle','Stand','Stadtbezir','SHAPE_Leng','SHAPE_Area'],inplace=True)
+
+    if city == 'Magdeburg':
+        fp='../../MSCA_data/Germany_population_new/Magdeburg/Stadtteile/2019-11-12_STB_ETRS89.shp'
+        gdf=gpd.read_file(fp)
+        gdf.to_crs(crs0,inplace=True)
+        # dissolve to convert from statistiche bezirke to stadtteile.
+        # the stadtteil is identified by the first 2 digits of the 3-digit SB, see here e.g. on page 3 https://www.magdeburg-tourist.de/media/custom/37_27260_1.PDF?1506336132
+        gdf['unit_id']=gdf['SBZ_Text'].str[:2]
+        gdf=gdf.dissolve(by='unit_id', aggfunc='sum').reset_index()
+        gdf.drop(columns=['DGN_LEVEL','SBZ_Nummer'],inplace=True)
+
+        # load population data for stadteile (or other spatial unit) 
+        fp='../../MSCA_data/Germany_population_new/Magdeburg/Pop_2018_2011.csv'
+        pop_st=pd.read_csv(fp,encoding='latin-1')
+        pop_st['Gebiet_NR']=pop_st['Gebiet_NR'].astype(str).str.zfill(2)
+        pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
+
+        gdf=gdf.merge(pop_st.loc[:,['Gebiet_NR','2011','2018','2018_2011']],left_on='unit_id',right_on='Gebiet_NR',how='left')
+        gdf.drop(columns=['Gebiet_NR'],inplace=True)
+
+    if city=='Kassel':
+        fp='../../MSCA_data/Germany_population_new/Kassel/Ortsbezirke_Stadt_Kassel/Ortsbezirke_20231017_GK.shp'
+        gdf=gpd.read_file(fp)
+        gdf.to_crs(crs0,inplace=True)
+        gdf.drop(columns=['OBJECTID','pitID','pitID','pitClass','pitValue'],inplace=True)
+
+        # load population data for stadteile (or other spatial unit) 
+        fp='../../MSCA_data/Germany_population_new/Kassel/pop_st.csv'
+        pop_st=pd.read_csv(fp,encoding='latin-1')
+        pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
+        pop_st['unit_id']=pop_st['Stadtteile'].str[:2]
+        pop_st['st_name']=pop_st['Stadtteile'].str[3:]
+        pop_st.drop(columns='Stadtteile',inplace=True)
+
+        gdf.rename(columns={'Ortsbezirk':'unit_id'},inplace=True)
+        gdf=gdf.merge(pop_st.loc[:,['unit_id','2011','2018','2018_2011']],on='unit_id',how='left')
+        gdf.drop(columns=['Shape_STAr','Shape_STLe'],inplace=True)
+        gdf.loc[gdf['unit_id']=='25','2018_2011']=1 # assume no change in pop in Dönchelandschaft (ortsbezirksfrei). according to these stats noone lives there, but maybe census is different
+
+    if city == 'Potsdam':
+        fp='../../MSCA_data/Germany_population_new/Potsdam/stadtteile/stadtteile.shp'
+        gdf=gpd.read_file(fp)
+        gdf.to_crs(crs0,inplace=True)
+
+        # load population data for stadteile (or other spatial unit) 
+        fp='../../MSCA_data/Germany_population_new/Potsdam/Potsdam_pop_st_2017.csv'
+        pop_st=pd.read_csv(fp,encoding='latin-1')
+        pop_st['Stadtteil']=pop_st['Stadtteil'].astype(str)
+
+        gdf.rename(columns={'id_st':'unit_id'},inplace=True)
+
+    # now for all cities, finish the calculations and save the densities by plz
+
+    # load city 100m grid
+    fp='../../MSCA_data/Germany_population_new/DE_Grid100m/' + city + '.shp'
+    grid_city=gpd.read_file(fp)
+    grid_city['Center']=grid_city.centroid
+    grid_city.rename(columns={'geometry':'grid_polygon'},inplace=True)
+    grid_city.set_geometry('Center',inplace=True)
+    grid_city.drop(columns=['index_righ','crs'],inplace=True,errors='ignore')
+
+    # join the gdf population data with the city grid,
+    grid_unit_city=gpd.sjoin(gdf,grid_city)
+    grid_unit_city.drop(columns='index_right',inplace=True)
+    # these should be same when merging on grid centroid
+    print(len(grid_unit_city))
+    print(len(grid_unit_city['id'].unique()))
+    print('check we have unit grid ids')
+    print(len(grid_unit_city)==len(grid_unit_city['id'].unique()))
+    # merge the city grid data with german grid population from 2011 census. this takes around 30sec
+    grid_pop_city=grid_unit_city.merge(pop_grid.loc[:,['Gitter_ID_100m','Einwohner']],left_on='id',right_on='Gitter_ID_100m')
+
+    # workaround for potsdam for which we don't have stadtteil population for 2011
+    if city=='Potsdam':
+        sum_st_2011=grid_pop_city.groupby('unit_id')['Einwohner'].sum().to_frame().reset_index().rename(columns={'Einwohner':'2011','unit_id':'Stadtteil'})
+        pop_st=pop_st.merge(sum_st_2011,how='outer')
+        pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
+        pop_st.rename(columns={'Stadtteil':'unit_id'},inplace=True)
+        grid_pop_city=grid_pop_city.merge(pop_st.loc[:,['unit_id','2018_2011']])
+
+    if city=='Potsdam':
+        grid_pop_city['census2local']=1
+    else:
+        grid_pop_city['census2local']=gdf['2011'].sum()/grid_pop_city['Einwohner'].sum()
+    grid_pop_city['Pop_2018']=grid_pop_city['Einwohner']*grid_pop_city['2018_2011']*grid_pop_city['census2local']
+
+    grid_pop_city['grid_center']=grid_pop_city['grid_polygon'].centroid
+    grid_pop_city.set_geometry('grid_center',inplace=True)
+
+    # load in geodataframe of city postcode geometries
+    city_plz=DE_plz[city]
+    fp='../../sufficcs_mobility/source/GTFS/postcodes_gpkg/'+city+'_postcodes'+'.gpkg'
+    gdf_plz=gpd.read_file(fp)
+    gdf_plz.to_crs(3035,inplace=True)
+    gdf_plz['geocode']=gdf_plz['geocode'].astype(str).str.zfill(5)
+    gdf_plz=gdf_plz.loc[gdf_plz['geocode'].isin(city_plz.tolist())]
+    gdf_plz['Area']=1e-6*gdf_plz.area
+
+    # add in postcode labels with sjon
+    grid_pop_city_plz=gpd.sjoin(grid_pop_city,gdf_plz)
+    # sum population by plz
+    pop_plz=grid_pop_city_plz.groupby('geocode')['Pop_2018'].sum().to_frame().reset_index()
+
+    # add plz population to gdf
+    gdf_plz=gdf_plz.merge(pop_plz)
+    gdf_plz['Density']=round(gdf_plz['Pop_2018']/gdf_plz['Area'])
+    gdf_plz['Pop_2018']=round(gdf_plz['Pop_2018'])
+
+    gdf_plz.drop(columns='geometry').to_csv('../outputs/density_geounits/'+city+'_pop_density.csv',index=False)
+
+    summ=gdf_plz.loc[:,['Area','Pop_2018']].sum().reset_index()
+    summ=pd.concat([summ,pd.DataFrame([{'index':'density',0:summ.iloc[1,1]/summ.iloc[0,1]}])])
+    summ.rename(columns={'index':'variable',0:'value'},inplace=True)
+    summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
+
+        
+cities_DE=pd.Series(['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
+cities_DE.apply(dens_DE)
+
+# calculate Berlin densities separately
+city='Berlin'
+print(city)
+# load in geodataframe of city postcode geometries
+city_plz=DE_plz[city]
+fp='../../sufficcs_mobility/source/GTFS/postcodes_gpkg/'+city+'_postcodes'+'.gpkg'
+gdf_plz=gpd.read_file(fp)
+gdf_plz.to_crs(3035,inplace=True)
+gdf_plz['geocode']=gdf_plz['geocode'].astype(str).str.zfill(5)
+gdf_plz=gdf_plz.loc[gdf_plz['geocode'].isin(city_plz.tolist())]
+gdf_plz['Area']=1e-6*gdf_plz.area
+gdf_plz=gdf_plz.loc[gdf_plz['geocode']!='16548',]
+
+# load population data
+pop=pd.read_csv('../../MSCA_data/berlin/Berlin housing stock/pop_plz_BBStatistk.csv',encoding='latin')
+pop['geocode']=pop['geocode'].astype(str)
+pop=pop.groupby('geocode')['Population'].sum().to_frame().reset_index()
+pop=pop.loc[~pop['geocode'].isin(['15566','15569']),:]
+pop.rename(columns={'Population':'Pop_2018'},inplace=True)
+
+gdf_plz=gdf_plz.merge(pop)
+gdf_plz['Density']=round(gdf_plz['Pop_2018']/gdf_plz['Area'])
+gdf_plz.drop(columns='geometry').to_csv('../outputs/density_geounits/'+city+'_pop_density.csv',index=False)
+
+summ=gdf_plz.loc[:,['Area','Pop_2018']].sum().reset_index()
+summ=pd.concat([summ,pd.DataFrame([{'index':'density',0:summ.iloc[1,1]/summ.iloc[0,1]}])])
+summ.rename(columns={'index':'variable',0:'value'},inplace=True)
+summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
