@@ -233,39 +233,24 @@ sHPW=sHPW.loc[(sHPW['Trip_Distance']>=0.05) & (sHPW['Trip_Distance']<=50),:]
 sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
 
 # calculate and print some summary stats
-# mode_share=sHPW.groupby('Mode')['Trip_Distance'].sum()/sum(sHPW.groupby('Mode')['Trip_Distance'].sum())
-# weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance')]
-# weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
-# mode_share_weighted=weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sum(weighted.groupby('Mode')['Dist_Weighted_P'].sum())
+# daily distance per person
+daily_dist=sHPW.groupby('HH_PNR')['Trip_Distance'].sum().to_frame().reset_index()
+# daily distance per person, including people with out travel distances, for a variety of reasons
+daily_dist_all=daily_dist.merge(sP['HH_PNR'],how='right')
+# get the household-person ids for those who did travel, but their travels were recorded as invalid for some reason
+HH_PNR_na=sW.loc[sW['HH_PNR'].isin(daily_dist_all.loc[daily_dist_all['Trip_Distance'].isna(),'HH_PNR']),'HH_PNR']
+na_PNR=HH_PNR_na.drop_duplicates().values.tolist()
 
-# print('Weighted mode share')
-# print(mode_share_weighted)
-
-# print('N Trips')
-# print(len(sHPW))
-
-# print('Avg trip distance in km, overall: ', round(np.average(sHPW['Trip_Distance'],weights=sHPW['Per_Weight']),1))
-
-# person_trips=pd.DataFrame(sHPW.groupby('HH_PNR')['Trip_Distance'].sum()).reset_index()
-# print('Average travel distance per person per day, all modes, km/cap: ' , str(round(person_trips['Trip_Distance'].mean(),1)))
-
-# person_mode_trips=pd.DataFrame(sHPW.groupby(['HH_PNR','Mode'])['Trip_Distance'].sum()).reset_index()
-# print('Average travel distance per person per day, all modes, km/cap: ')
-# print(str(round(person_mode_trips.groupby('Mode')['Trip_Distance'].sum()/len(person_trips),2)))
-
-# if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(person_trips):
-#     print('NB! Some respondents report trips over more than one day')
-unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
-weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
+weighted=sHPW.loc[:,('HH_PNR','Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
+weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
 weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
 
-# weight_daily_travel=pd.DataFrame(weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
-# weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
-# weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
+# calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
+unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
+unique_persons=unique_persons.loc[~unique_persons['HH_PNR'].isin(na_PNR),:]
 
-# carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
-# own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
-# weight_daily_travel=weight_daily_travel.merge(own,how='left')
+if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(sHPW.loc[:,('HH_PNR')].drop_duplicates()):
+    print('NB! Some respondents report trips over more than one day')
 
 weight_daily_travel=pd.DataFrame(weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
 commute_avg=weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Per_Weight'].sum()
@@ -275,7 +260,8 @@ weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[tri
 weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
 weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
-carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+# calculate car ownership for all households
+carown=sH.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
 own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
 weight_daily_travel=weight_daily_travel.merge(own,how='left')
 weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
@@ -566,7 +552,10 @@ msdrp.reset_index(inplace=True)
 
 # avg travel km/day/cap by postcode of residence
 # first calculate weighted number of surveyed people by postcode
-plz_per_weight=pd.DataFrame(sHPW[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
+sH['Res_geocode']=sH['geo_unit'].astype("string")
+sP=sP.merge(sH.loc[:,['HHNR','Res_geocode']])
+sP=sP.loc[~sP['HH_PNR'].isin(na_PNR),:]
+plz_per_weight=pd.DataFrame(sP[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
 # next calculate sum weighted travel distance by residence postcode
 plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
 plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
@@ -580,8 +569,8 @@ plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distanc
 plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
 
 # car ownhership rates by household
-plz_hh_weight=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
-plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+plz_hh_weight=pd.DataFrame(sH[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+plz_hh_car=pd.DataFrame(sH.loc[sH['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
 plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
 plz_hh_car=plz_hh_car.merge(plz_hh_weight)
 plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)
@@ -605,8 +594,20 @@ sHPW.loc[sHPW['IncomeDetailed']=='3500-4500','Income']=4000
 sHPW.loc[sHPW['IncomeDetailed']=='4500-5500','Income']=5000
 sHPW.loc[sHPW['IncomeDetailed']=='Over5500','Income']=6000
 
+sH['Income']=np.nan
+sH.loc[sH['IncomeDetailed']=='Under800','Income']=500
+sH.loc[sH['IncomeDetailed']=='800-1200','Income']=1000
+sH.loc[sH['IncomeDetailed']=='1200-1600','Income']=1400
+sH.loc[sH['IncomeDetailed']=='1600-2000','Income']=1800
+sH.loc[sH['IncomeDetailed']=='2000-2400','Income']=2200
+sH.loc[sH['IncomeDetailed']=='2400-3000','Income']=2700
+sH.loc[sH['IncomeDetailed']=='3000-3500','Income']=3250
+sH.loc[sH['IncomeDetailed']=='3500-4500','Income']=4000
+sH.loc[sH['IncomeDetailed']=='4500-5500','Income']=5000
+sH.loc[sH['IncomeDetailed']=='Over5500','Income']=6000
+
 # plot car ownership by income 
-hh_inc_car=pd.DataFrame(sHPW.groupby(['HHNR'])['Income','CarOwnershipHH'].mean()).reset_index()
+hh_inc_car=pd.DataFrame(sH.groupby(['HHNR'])['Income','CarOwnershipHH'].mean()).reset_index()
 inc_car=hh_inc_car.groupby('Income')['CarOwnershipHH'].mean().reset_index()
 inc_N=hh_inc_car.groupby('Income')['CarOwnershipHH'].count().reset_index()
 inc_N.rename(columns={'CarOwnershipHH':'N_HH'},inplace=True)

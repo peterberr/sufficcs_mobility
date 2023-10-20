@@ -298,10 +298,21 @@ def combine_survey_data(city):
     sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:] 
     sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
 
-    weighted=sHPW.loc[:,('Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
+    # daily distance per person
+    daily_dist=sHPW.groupby('HH_PNR')['Trip_Distance'].sum().to_frame().reset_index()
+    # daily distance per person, including people with out travel distances, for a variety of reasons
+    daily_dist_all=daily_dist.merge(sP['HH_PNR'],how='right')
+    # get the household-person ids for those who did travel, but their travels were recorded as invalid for some reason
+    HH_PNR_na=sW.loc[sW['HH_PNR'].isin(daily_dist_all.loc[daily_dist_all['Trip_Distance'].isna(),'HH_PNR']),'HH_PNR']
+    na_PNR=HH_PNR_na.drop_duplicates().values.tolist()
+    
+    weighted=sHPW.loc[:,('HH_PNR','Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
+    weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
     weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
 
-    unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
+    # calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
+    unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
+    unique_persons=unique_persons.loc[~unique_persons['HH_PNR'].isin(na_PNR),:]
 
     weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
     commute_avg=0.001*weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Per_Weight'].sum()
@@ -311,7 +322,8 @@ def combine_survey_data(city):
     weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
     weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
-    carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+    # calcylate car ownership for all households
+    carown=sH.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
     own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
     weight_daily_travel=weight_daily_travel.merge(own,how='left')
     weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
@@ -415,6 +427,7 @@ def combine_survey_data(city):
     sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res','pc_road':'LU_Road_res',
     'pc_urban':'LU_Urban_res'},inplace=True)
 
+    # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
     #sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_Urban_origin']
     sHPW_UF['UrbPopDensity_res']=sHPW_UF['PopDensity_res']/sHPW_UF['LU_Urban_res']
 
@@ -454,7 +467,11 @@ def combine_survey_data(city):
 
     # avg travel km/day/cap by postcode of residence
     # first calculate weighted number of surveyed people by postcode
-    plz_per_weight=pd.DataFrame(sHPW[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
+    sH['Res_geocode']=sH['Sector_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") 
+    sH['Res_geo_unit']=sH['geo_unit'].astype("string")
+    sP=sP.merge(sH.loc[:,['HHNR','Res_geocode','Res_geo_unit']])
+    sP=sP.loc[~sP['HH_PNR'].isin(na_PNR),:]
+    plz_per_weight=pd.DataFrame(sP[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
     # next calculate sum weighted travel distance by residence postcode
     plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
     plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
@@ -468,8 +485,8 @@ def combine_survey_data(city):
     plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
 
     # car ownership rates by household
-    plz_hh_weight=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
-    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_weight=pd.DataFrame(sH[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_car=pd.DataFrame(sH.loc[sH['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
     plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
     plz_hh_car=plz_hh_car.merge(plz_hh_weight)
     plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)
@@ -498,7 +515,7 @@ def combine_survey_data(city):
 
     # avg travel km/day/cap by postcode of residence
     # first calculate weighted number of surveyed people by postcode
-    plz_per_weight=pd.DataFrame(sHPW[['Res_geo_unit', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['Per_Weight'].sum()).reset_index() 
+    plz_per_weight=pd.DataFrame(sP[['Res_geo_unit', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['Per_Weight'].sum()).reset_index() 
     # next calculate sum weighted travel distance by residence postcode
     plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geo_unit'])['Trip_Distance_Weighted'].sum()).reset_index()
     plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
@@ -512,8 +529,8 @@ def combine_survey_data(city):
     plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
 
     # car ownership rates by household
-    plz_hh_weight=pd.DataFrame(sHPW[['Res_geo_unit', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
-    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geo_unit', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_weight=pd.DataFrame(sH[['Res_geo_unit', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_car=pd.DataFrame(sH.loc[sH['CarAvailable']==1,('Res_geo_unit', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
     plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
     plz_hh_car=plz_hh_car.merge(plz_hh_weight)
     plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)
@@ -527,6 +544,17 @@ def combine_survey_data(city):
         # prepare to plot car ownership and distance traveled by income
     if city in ['Clermont','Toulouse']:
 
+        sH['Income']=np.nan
+        sH.loc[sH['IncomeDetailed']=='Under1000','Income']=500
+        sH.loc[sH['IncomeDetailed']=='1000-2000','Income']=1500
+        sH.loc[sH['IncomeDetailed']=='2000-3000','Income']=2500
+        sH.loc[sH['IncomeDetailed']=='3000-4000','Income']=3500
+        sH.loc[sH['IncomeDetailed']=='4000-6000','Income']=5000
+        sH.loc[sH['IncomeDetailed']=='Over6000','Income']=6500
+        sH.loc[sH['IncomeDetailed']=='4000-5000','Income']=4500
+        sH.loc[sH['IncomeDetailed']=='5000-7000','Income']=6000
+        sH.loc[sH['IncomeDetailed']=='Over7000','Income']=7500
+
         sHPW['Income']=np.nan
         sHPW.loc[sHPW['IncomeDetailed']=='Under1000','Income']=500
         sHPW.loc[sHPW['IncomeDetailed']=='1000-2000','Income']=1500
@@ -539,7 +567,7 @@ def combine_survey_data(city):
         sHPW.loc[sHPW['IncomeDetailed']=='Over7000','Income']=7500
 
         # plot car ownership by income 
-        hh_inc_car=pd.DataFrame(sHPW.groupby(['HHNR'])['Income','CarOwnershipHH'].mean()).reset_index()
+        hh_inc_car=pd.DataFrame(sH.groupby(['HHNR'])['Income','CarOwnershipHH'].mean()).reset_index()
         inc_car=hh_inc_car.groupby('Income')['CarOwnershipHH'].mean().reset_index()
         inc_N=hh_inc_car.groupby('Income')['CarOwnershipHH'].count().reset_index()
         inc_N.rename(columns={'CarOwnershipHH':'N_HH'},inplace=True)
@@ -569,12 +597,12 @@ def combine_survey_data(city):
         person_mode_income=pd.DataFrame(person_income_dist.groupby(['Income'])['Trip_Distance','Trip_Distance_Car'].mean()).reset_index()
         person_mode_income['Car_ModeShare']=person_mode_income['Trip_Distance_Car']/person_mode_income['Trip_Distance']
 
-        fig, ax = plt.subplots()
-        plt.plot(person_mode_income['Income'],100*person_mode_income['Car_ModeShare'])
-        plt.title('Car Mode Share by Income, ' + city,fontsize=16)
-        plt.xlabel('HH Income, EUR/month',fontsize=12)
-        plt.ylabel('Share of Travel Dist. by Car (%)',fontsize=12)
-        ax.grid()
+        # fig, ax = plt.subplots()
+        # plt.plot(person_mode_income['Income'],100*person_mode_income['Car_ModeShare'])
+        # plt.title('Car Mode Share by Income, ' + city,fontsize=16)
+        # plt.xlabel('HH Income, EUR/month',fontsize=12)
+        # plt.ylabel('Share of Travel Dist. by Car (%)',fontsize=12)
+        # ax.grid()
 
         inc_stats=inc_car.merge(person_mode_income)
         inc_stats['City']=city
@@ -716,7 +744,7 @@ def combine_survey_data(city):
         # save
         sH2_UF.to_csv('../outputs/Combined/' + city + '_co_UF.csv',index=False)
 
-        # calculate summary stats by geocode
+        # re-calculate summary stats by (aggregated) geocode
 
         # make dist categories
         sHPW['Trip_Distance_Cat']=np.nan
@@ -830,5 +858,6 @@ def combine_survey_data(city):
 
 
 cities=pd.Series(['Clermont', 'Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
+#cities=pd.Series(['Clermont'])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)

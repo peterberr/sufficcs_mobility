@@ -185,8 +185,8 @@ def combine_survey_data(city):
     
     weighted=sHPW.loc[:,('HH_PNR','Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
     weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
-
     weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
+    
     # calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
     unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
     unique_persons=unique_persons.loc[~unique_persons['HH_PNR'].isin(na_PNR),:]
