@@ -285,14 +285,29 @@ def combine_survey_data(city):
     sHPW['Ori_geocode']=sHPW['Ori_Sec_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") # need this format https://stackoverflow.com/questions/22231592/pandas-change-data-type-of-series-to-string
     sHPW['Des_geocode']=sHPW['Des_Sec_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string")
     sHPW['Res_geocode']=sHPW['Sector_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") 
+    sH['Res_geocode']=sH['Sector_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") 
+    sHP['Res_geocode']=sHP['Sector_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") 
+    sW['Ori_geocode']=sW['Ori_Sec_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string") # need this format https://stackoverflow.com/questions/22231592/pandas-change-data-type-of-series-to-string
+    sW['Des_geocode']=sW['Des_Sec_Zone'].astype("string").str.zfill(6).map(code_dict).astype("string")
 
     # these are the highest resolution geo ids, and are used to merge with hi-res connectivity and distance urban form features
     sHPW['Ori_Sec_Zone']=sHPW['Ori_Sec_Zone'].astype("string").str.zfill(6)
     sHPW['Des_Sec_Zone']=sHPW['Des_Sec_Zone'].astype("string").str.zfill(6)
     sHPW['Res_Sec_Zone']=sHPW['Sector_Zone'].astype("string").str.zfill(6)
     sHPW.drop(columns='Sector_Zone',inplace=True)
-    # remove trips that don't start within the region where we collect urban features data
-    sHPW=sHPW.loc[sHPW['Ori_geocode'].isna()==False,:]
+
+    # responses should be of people who live in the city, and trips should either start or end in the city
+    sHPW=sHPW.loc[sHPW['Res_geocode'].isna()==False,:]
+    sHPW=sHPW.loc[(sHPW['Ori_geocode'].isna()==False) | (sHPW['Des_geocode'].isna()==False),:]
+    # do same for P and H and W files
+    sP=sP.merge(sH.loc[:,['HHNR','Res_geocode']])
+    sW=sW.merge(sP.loc[:,['HH_PNR','Res_geocode']])
+
+    sP=sP.loc[sP['Res_geocode'].isna()==False,:]
+    sH=sH.loc[sH['Res_geocode'].isna()==False,:]
+    sHP=sHP.loc[sHP['Res_geocode'].isna()==False,:]
+    sW=sW.loc[sW['Res_geocode'].isna()==False,:]
+    sW=sW.loc[(sW['Ori_geocode'].isna()==False) | (sW['Des_geocode'].isna()==False),:]
 
     # further cleaning to retrict the trips to those between 0.1km and 50km
     sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:] 
@@ -309,6 +324,11 @@ def combine_survey_data(city):
     weighted=sHPW.loc[:,('HH_PNR','Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
     weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
     weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
+
+    if 'Trip_Weight' in sW.columns:
+        print('Person weights and trip weights are all the same: ' ,all(sHPW['Per_Weight']==sHPW['Trip_Weight']))
+    else: 
+        print('No trip weights, person weights used instead.')
 
     # calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
     unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
@@ -856,8 +876,7 @@ def combine_survey_data(city):
         fig.suptitle("Trip Mode by Purpose & Distance, " + city, fontsize=22,y=0.95)
         fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
 
-
-cities=pd.Series(['Clermont', 'Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
-#cities=pd.Series(['Clermont'])
+#cities=pd.Series(['Clermont', 'Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
+cities=pd.Series(['Clermont','Toulouse'])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)

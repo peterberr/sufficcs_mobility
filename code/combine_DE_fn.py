@@ -167,6 +167,15 @@ def combine_survey_data(city):
     # responses should be of people who live in the city, and trips should either start or end in the city
     sHPW=sHPW.loc[sHPW['Res_geocode'].isin(city_plz[city]),:]
     sHPW=sHPW.loc[(sHPW['Ori_Plz'].isin(city_plz[city])) | (sHPW['Des_Plz'].isin(city_plz[city]))]
+    # same for other dataframes
+    sP=sP.merge(sH.loc[:,['HHNR','Res_geocode']])
+    sW=sW.merge(sP.loc[:,['HH_PNR','Res_geocode']])
+
+    sH=sH.loc[sH['Res_geocode'].isin(city_plz[city]),:]
+    sP=sP.loc[sP['Res_geocode'].isin(city_plz[city]),:]
+    sHP=sHP.loc[sHP['Res_geocode'].isin(city_plz[city]),:]
+    sW=sW.loc[sW['Res_geocode'].isin(city_plz[city]),:]
+    sW=sW.loc[(sW['Ori_Plz'].isin(city_plz[city])) | (sW['Des_Plz'].isin(city_plz[city]))]
 
     sHPW.sort_values(by='HH_P_WNR',inplace=True)
     sHPW.reset_index(drop=True,inplace=True)
@@ -174,7 +183,6 @@ def combine_survey_data(city):
     sHPW['Trip_Distance_Calc']=sHPW.loc[:,'Trip_Distance_GIS']
     sHPW.loc[sHPW['Trip_Distance_GIS_valid']==0,'Trip_Distance_Calc']=sHPW.loc[sHPW['Trip_Distance_GIS_valid']==0,'Trip_Distance']
 
-    # sHPW['Trip_Distance']=sHPW.loc[:,'Trip_Distance']*1000
     sHPW['Trip_Distance']=sHPW.loc[:,'Trip_Distance_Calc']*1000
     sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:]
     sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
@@ -217,7 +225,7 @@ def combine_survey_data(city):
     if len(sHPW.loc[:,('HH_PNR','Date')].drop_duplicates())!=len(sHPW.loc[:,('HH_PNR')].drop_duplicates()):
         print('NB! Some respondents report trips over more than one day')
 
-    sHPW['Trip_Speed']=round(60*0.001*sHPW['Trip_Distance']/(sHPW['Trip_Duration']),2)
+    #sHPW['Trip_Speed']=round(60*0.001*sHPW['Trip_Distance']/(sHPW['Trip_Duration']),2)
 
     sHPW.to_csv('../outputs/Combined/'+city+'.csv',index=False)
 
@@ -317,23 +325,6 @@ def combine_survey_data(city):
     # sHPW_UF['ori_des']=sHPW_UF['Ori_Plz']+'_'+sHPW_UF['Des_Plz']
     # sHPW_UF=sHPW_UF.merge(elev.loc[:,['ori_des','diff']]).copy()
 
-    # # mean time to transit
-    # mean_time_tran=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['Time2Transit'].sum()/sHPW[['Res_geocode', 'HHNR','HH_Weight','Time2Transit']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index()
-    # mean_time_tran.rename(columns={0:'MeanTime2Transit'},inplace=True)
-
-    # # mean time to transit, origin
-    # sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Ori_Plz',right_on='Res_geocode').copy() 
-    # sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
-    # sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_origin','Res_geocode_x':'Res_geocode'},inplace=True)
-
-    # mean time to transit, destination
-    # sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Des_Plz',right_on='Res_geocode').copy() 
-    # sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
-    # sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_dest','Res_geocode_x':'Res_geocode'},inplace=True)
-    # sHPW_UF=sHPW_UF.merge(mean_time_tran,left_on='Res_geocode',right_on='Res_geocode').copy() 
-    # #sHPW_UF.drop(columns={'Res_geocode_y',},inplace=True)
-    # sHPW_UF.rename(columns={'MeanTime2Transit':'MeanTime2Transit_res'},inplace=True)
-
     # transit stats, origin
     # sHPW_UF=sHPW_UF.merge(transit,left_on='Ori_Plz',right_on='geocode').copy() 
     # sHPW_UF.drop(columns='geocode',inplace=True)
@@ -421,8 +412,6 @@ def combine_survey_data(city):
 
     for h in sHP['HHNR']:
         if 'University' in sHP.loc[sHP['HHNR']==h, 'Education'].values:
-            # print(h)
-            # print('Uni')
             sHP.loc[sHP['HHNR']==h, 'UniversityEducation']=1
         if any([any('Employed_PartTime' == sHP.loc[sHP['HHNR']==h, 'Occupation'].values), any('Employed_FullTime' == sHP.loc[sHP['HHNR']==h, 'Occupation'].values)]):
             sHP.loc[sHP['HHNR']==h, 'InEmployment']=1

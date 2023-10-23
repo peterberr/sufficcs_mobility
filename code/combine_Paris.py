@@ -220,14 +220,29 @@ sHPW=sHPW[cols_new]
 fp = '../outputs/density_geounits/Paris_pop_density_lowres.csv'
 pa = import_csv_w_wkt_to_gdf(fp,crs=3035,geometry_col='geometry',gc='geo_unit')
 
-# use the code dictionary to create the origin and destination geocodes
-sHPW['Ori_geocode']=sW.loc[:,'Ori_Comm'].astype("string")
-sHPW['Des_geocode']=sW.loc[:,'Des_Comm'].astype("string")
+# use the code dictionary to create the origin and destination and residential geocodes
+sHPW['Ori_geocode']=sHPW.loc[:,'Ori_Comm'].astype("string")
+sHPW['Des_geocode']=sHPW.loc[:,'Des_Comm'].astype("string")
+sW['Ori_geocode']=sW.loc[:,'Ori_Comm'].astype("string")
+sW['Des_geocode']=sW.loc[:,'Des_Comm'].astype("string")
 sHPW['Res_geocode']=sHPW['geo_unit'].astype("string")
+sH['Res_geocode']=sH['geo_unit'].astype("string")
+sHP['Res_geocode']=sHP['geo_unit'].astype("string")
 sHPW.drop(columns=['Ori_Comm','Des_Comm','geo_unit','Commune'],inplace=True)
 
-# remove trips that don't start within the region where we collect urban features data
-sHPW=sHPW.loc[sHPW['Ori_geocode'].isin(pa['geo_unit']),:]
+# restrict to trips by households within our definition of paris, and that either start or end in the city
+sHPW=sHPW.loc[sHPW['Res_geocode'].isin(pa['geo_unit']),:]
+sHPW=sHPW.loc[(sHPW['Ori_geocode'].isin(pa['geo_unit'])) | (sHPW['Des_geocode'].isin(pa['geo_unit'])),:]
+# same for other dataframes
+sP=sP.merge(sH.loc[:,['HHNR','Res_geocode']])
+sW=sW.merge(sP.loc[:,['HH_PNR','Res_geocode']])
+
+sH=sH.loc[sH['Res_geocode'].isin(pa['geo_unit']),:]
+sP=sP.loc[sP['Res_geocode'].isin(pa['geo_unit']),:]
+sHP=sHP.loc[sHP['Res_geocode'].isin(pa['geo_unit']),:]
+sW=sW.loc[sW['Res_geocode'].isin(pa['geo_unit']),:]
+sW=sW.loc[(sW['Ori_geocode'].isin(pa['geo_unit'])) | (sW['Des_geocode'].isin(pa['geo_unit']))]
+
 # further cleaning to retrict the trips to those between 0.1km and 50km
 sHPW=sHPW.loc[(sHPW['Trip_Distance']>=0.05) & (sHPW['Trip_Distance']<=50),:]
 sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
@@ -244,6 +259,11 @@ na_PNR=HH_PNR_na.drop_duplicates().values.tolist()
 weighted=sHPW.loc[:,('HH_PNR','Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
 weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
 weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
+
+if 'Trip_Weight' in sW.columns:
+    print('Person weights and trip weights are all the same: ' ,all(sHPW['Per_Weight']==sHPW['Trip_Weight']))
+else: 
+    print('No trip weights, person weights used instead.')
 
 # calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
 unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
@@ -479,8 +499,8 @@ if len(sH2)!=len(sH):
     print('Mismatch with total N households')
 
 # now merge all urban form features with the survey data.
-sH2.rename(columns={'geo_unit':'Res_geocode'},inplace=True)
-sH2['Res_geocode']=sH2['Res_geocode'].astype("string")
+# sH2.rename(columns={'geo_unit':'Res_geocode'},inplace=True)
+# sH2['Res_geocode']=sH2['Res_geocode'].astype("string")
 # population density 
 sH2_UF=sH2.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy()
 sH2_UF.drop(columns='geocode',inplace=True)
@@ -517,23 +537,6 @@ sH2_UF.to_csv('../outputs/Combined/' + city + '_co_UF.csv',index=False)
 # # now create and save some summary stats by postcode
 sHPW['Trip_Distance_Weighted']=sHPW['Trip_Distance']*sHPW['Per_Weight']
 
-# mode share of trip distance by originating postcode
-ms_dist_all=pd.DataFrame(sHPW.groupby(['Ori_geo_unit'])['Trip_Distance_Weighted'].sum())
-ms_dist_all.reset_index(inplace=True)
-ms_dist_all.rename(columns={'Trip_Distance_Weighted':'Trip_Distance_All'},inplace=True)
-
-ms_dist=pd.DataFrame(sHPW.groupby(['Ori_geo_unit','Mode'])['Trip_Distance_Weighted'].sum())
-ms_dist.reset_index(inplace=True)
-ms_dist=ms_dist.merge(ms_dist_all)
-ms_dist['Share_Distance']=ms_dist['Trip_Distance_Weighted']/ms_dist['Trip_Distance_All']
-ms_dist.drop(columns=['Trip_Distance_Weighted','Trip_Distance_All'],inplace=True)
-
-# convert from long to wide 
-msdp=ms_dist.pivot(index='Ori_geo_unit',columns=['Mode'])
-msdp.columns = ['_'.join(col) for col in msdp.columns.values]
-msdp.reset_index(inplace=True)
-msdp.to_csv('../outputs/Summary_geounits/' + city + '_modeshare_origin.csv',index=False)
-
 # mode share of trip distance by residential postcode
 ms_dist_all_res=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum())
 ms_dist_all_res.reset_index(inplace=True)
@@ -552,7 +555,6 @@ msdrp.reset_index(inplace=True)
 
 # avg travel km/day/cap by postcode of residence
 # first calculate weighted number of surveyed people by postcode
-sH['Res_geocode']=sH['geo_unit'].astype("string")
 sP=sP.merge(sH.loc[:,['HHNR','Res_geocode']])
 sP=sP.loc[~sP['HH_PNR'].isin(na_PNR),:]
 plz_per_weight=pd.DataFrame(sP[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
