@@ -163,7 +163,11 @@ def combine_survey_data(city):
     cols_new = ['HHNR','HH_PNR','HH_P_WNR','Res_geocode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose'] + [value for value in cols if value not in {'HHNR','HH_PNR','HH_P_WNR','Res_geocode','Ori_Plz','Des_Plz','Trip_Time','Trip_Purpose','Mode', 'Trip_Distance'}] +['Mode', 'Trip_Distance']
     sHPW=sHPW[cols_new]
 
-    sHPW=sHPW.loc[sHPW['Ori_Plz'].isin(city_plz[city]),:]
+    # sHPW=sHPW.loc[sHPW['Ori_Plz'].isin(city_plz[city]),:]
+    # responses should be of people who live in the city, and trips should either start or end in the city
+    sHPW=sHPW.loc[sHPW['Res_geocode'].isin(city_plz[city]),:]
+    sHPW=sHPW.loc[(sHPW['Ori_Plz'].isin(city_plz[city])) | (sHPW['Des_Plz'].isin(city_plz[city]))]
+
     sHPW.sort_values(by='HH_P_WNR',inplace=True)
     sHPW.reset_index(drop=True,inplace=True)
 
@@ -186,6 +190,8 @@ def combine_survey_data(city):
     weighted=sHPW.loc[:,('HH_PNR','Per_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
     weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
     weighted['Dist_Weighted_P']=weighted['Per_Weight']*weighted['Trip_Distance']
+
+    print('Person weights and trip weights are all the same: ' ,all(sHPW['Per_Weight']==sHPW['Trip_Weight']))
     
     # calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
     unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
