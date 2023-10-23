@@ -86,7 +86,6 @@ cols=sW.columns.tolist()
 cols_new = ['HHNR','HH_PNR','HH_P_WNR'] + [value for value in cols if value not in {'HHNR', 'HH_PNR','HH_P_WNR'}]
 sW=sW[cols_new]
 
-
 # define houshold vehicle ownership
 sH['CarAvailable']=0
 sH.loc[sH['Type_V1'].isin([1,3,4]),'CarAvailable']=1
@@ -202,37 +201,48 @@ with open('../dictionaries/' + city + '_mixed_geocode.pkl','rb') as f:
 sHPW['Ori_geocode']=sHPW['Ori_Zone'].astype('str').str.zfill(6).map(code_dict)
 sHPW['Des_geocode']=sHPW['Des_Zone'].astype('str').str.zfill(6).map(code_dict)
 sHPW['Res_geocode']=sHPW['Zone'].astype('str').str.zfill(6).map(code_dict)
+sH['Res_geocode']=sH['Zone'].astype('str').str.zfill(6).map(code_dict)
 
 # these are the highest resolution geo ids for Madrid, and are used to merge with hires connectivity and distance metrics
 sHPW['Ori_Sec_Zone']=sHPW['Ori_Zone'].astype("string").str.zfill(6)
 sHPW['Des_Sec_Zone']=sHPW['Des_Zone'].astype("string").str.zfill(6)
 sHPW['Res_Sec_Zone']=sHPW['Zone'].astype("string").str.zfill(6)
 
-# remove trips that don't start within the region where we collect urban features data
-sHPW=sHPW.loc[sHPW['Ori_geocode'].isna()==False,:]
+# limit to trips for people who live within our definition of Madrid
+sHPW=sHPW.loc[sHPW['Res_geocode'].isna()==False,:]
+# do same for P and H and W files
+sP=sP.merge(sH.loc[:,['HHNR','Res_geocode','Sector']])
+sW=sW.merge(sP.loc[:,['HH_PNR','Res_geocode','Sector']])
+sP=sP.loc[sP['Res_geocode'].isna()==False,:]
+sH=sH.loc[sH['Res_geocode'].isna()==False,:]
+sW=sW.loc[sW['Res_geocode'].isna()==False,:]
 
 # further cleaning to retrict the trips to those between 0.1km and 50km and remove trips w/o mode information
 sHPW['Trip_Distance']=sHPW.loc[:,'Trip_Distance']*1000
 sHPW=sHPW.loc[(sHPW['Trip_Distance']>=50) & (sHPW['Trip_Distance']<=50000),:] 
 sHPW=sHPW.loc[sHPW['Mode']!='Other',:]
 
-# weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance')]
-# weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
+# daily distance per person
+daily_dist=sHPW.groupby('HH_PNR')['Trip_Distance'].sum().to_frame().reset_index()
+# daily distance per person, including people with out travel distances, for a variety of reasons
+daily_dist_all=daily_dist.merge(sP['HH_PNR'],how='right')
 
-# weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/sP['Per_Weight'].sum()).reset_index()
-# weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
-# weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
+# get the household-person ids for those who did travel, but their travels were recorded as invalid for some reason
+HH_PNR_na=sW.loc[sW['HH_PNR'].isin(daily_dist_all.loc[daily_dist_all['Trip_Distance'].isna(),'HH_PNR']),'HH_PNR']
+na_PNR=HH_PNR_na.drop_duplicates().values.tolist()
 
-# carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
-# own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
-# weight_daily_travel=weight_daily_travel.merge(own,how='left')
-
-weighted=sHPW.loc[:,('Trip_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
+weighted=sHPW.loc[:,('HH_PNR','Trip_Weight','Mode','Trip_Distance','Trip_Purpose_Agg')]
+weighted=weighted.loc[~weighted['HH_PNR'].isin(na_PNR),:]
 weighted['Dist_Weighted_P']=weighted['Trip_Weight']*weighted['Trip_Distance']
 
-unique_persons=sHPW.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
+# calculate number of persons using the whole sP file, so we can accuractely calculate km/cap/day. i.e. including those who didn't travel on the survey date
+unique_persons=sP.loc[:,['HH_PNR','Per_Weight']].drop_duplicates()
+unique_persons=unique_persons.loc[~unique_persons['HH_PNR'].isin(na_PNR),:]
 
-weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/unique_persons['Per_Weight'].sum()).reset_index()
+print('Person weights and trip weights are all the same: ' ,all(sHPW['Per_Weight']==sHPW['Trip_Weight']))
+
+# when trip weight and person weight are not all the same, we need to use mean_trip_weight*/N_persons as the denominator for calculating km/cap
+weight_daily_travel=pd.DataFrame(0.001*weighted.groupby('Mode')['Dist_Weighted_P'].sum()/(weighted['Trip_Weight'].mean()*len(unique_persons))).reset_index()
 commute_avg=0.001*weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Dist_Weighted_P'].sum()/weighted.loc[weighted['Trip_Purpose_Agg']=='Home↔Work','Trip_Weight'].sum()
 trip_avg=0.001*weighted['Dist_Weighted_P'].sum()/weighted['Trip_Weight'].sum()
 weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[trip_avg,commute_avg]})
@@ -240,7 +250,7 @@ weight_trip_avg=pd.DataFrame(data={'Mode':['All','Commute'],'Avg_trip_dist':[tri
 weight_daily_travel.rename(columns={'Dist_Weighted_P':'Daily_Travel_cap'},inplace=True)
 weight_daily_travel['Mode_Share']=weight_daily_travel['Daily_Travel_cap']/weight_daily_travel['Daily_Travel_cap'].sum()
 
-carown=sHPW.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
+carown=sH.loc[:,['HHNR','HH_Weight','CarOwnershipHH']].drop_duplicates()
 own=pd.DataFrame(data={'Mode':['Car'],'Ownership':sum(carown['CarOwnershipHH']*carown['HH_Weight'])/sum(carown['HH_Weight'])})
 weight_daily_travel=weight_daily_travel.merge(own,how='left')
 weight_daily_travel=weight_daily_travel.merge(weight_trip_avg,how='outer')
@@ -254,6 +264,9 @@ if len(sHPW.loc[:,('HH_PNR','Day')].drop_duplicates())!=len(sHPW.loc[:,('HH_PNR'
 # rename for consistency
 #sHPW.rename(columns={'Zone':'Res_Sec_Zone'},inplace=True)
 sHPW['Res_geo_unit']=sHPW['Sector'].astype("string")
+sH['Res_geo_unit']=sH['Sector'].astype("string")
+sW['Res_geo_unit']=sW['Sector'].astype("string")
+sP['Res_geo_unit']=sP['Sector'].astype("string")
 sHPW.drop(columns=['Zone','Sector'],inplace=True)
 # save
 sHPW.to_csv('../outputs/Combined/Madrid.csv',index=False)
@@ -262,7 +275,7 @@ sHPW.to_csv('../outputs/Combined/Madrid.csv',index=False)
 # population density
 pop_dens=pd.read_csv('../outputs/density_geounits/' + city + '_pop_density_mixres.csv',dtype={'geocode':str})
 pop_dens.drop(columns=['geometry','area'],inplace=True)
-# building density and distance to city center, here plz needs to change to geocode
+# building density and distance to city center
 bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'geocode':str})
 bld_dens.drop(columns=['wgt_center'],inplace=True)
 d2=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist_hires.csv',dtype={'geocode':str})
@@ -291,20 +304,6 @@ transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode
 sHPW_UF=sHPW.merge(pop_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
 sHPW_UF.drop(columns='geocode',inplace=True)
 sHPW_UF.rename(columns={'Density':'PopDensity_res'},inplace=True)
-
-# # buidling density and distance to centers origin
-# sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_geocode',right_on='geocode').copy() 
-# sHPW_UF.drop(columns='geocode',inplace=True)
-# sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_origin','Distance2Center':'DistCenter_origin','build_vol_density':'BuildDensity_origin'},inplace=True)
-# # buidling density and distance to centers residential
-# sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
-# sHPW_UF.drop(columns='geocode',inplace=True)
-# sHPW_UF.rename(columns={'minDist_subcenter':'DistSubcenter_res','Distance2Center':'DistCenter_res','build_vol_density':'BuildDensity_res'},inplace=True)
-
-# buidling density origin
-# sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Ori_geocode',right_on='geocode').copy() 
-# sHPW_UF.drop(columns='geocode',inplace=True)
-# sHPW_UF.rename(columns={'build_vol_density':'BuildDensity_origin'},inplace=True)
 
 # buidling density residential
 sHPW_UF=sHPW_UF.merge(bld_dens,left_on='Res_geocode',right_on='geocode').copy() # allow for nans in destination data, see if/how model deals with them
@@ -377,27 +376,8 @@ with open('../dictionaries/Madrid_zone_sec.pkl','rb') as f:
 
 sHPW['Ori_geo_unit']=sHPW['Ori_Zone'].map(zone_sec)
 
-# sHPW['geo_unit']=sHPW['Sector']
-
 # now create and save some summary stats by postcode
 sHPW['Trip_Distance_Weighted']=sHPW['Trip_Distance']*sHPW['Trip_Weight']
-
-# # mode share of trip distance by originating postcode
-# ms_dist_all=pd.DataFrame(sHPW.groupby(['Ori_geo_unit'])['Trip_Distance_Weighted'].sum())
-# ms_dist_all.reset_index(inplace=True)
-# ms_dist_all.rename(columns={'Trip_Distance_Weighted':'Trip_Distance_All'},inplace=True)
-
-# ms_dist=pd.DataFrame(sHPW.groupby(['Ori_geo_unit','Mode'])['Trip_Distance_Weighted'].sum())
-# ms_dist.reset_index(inplace=True)
-# ms_dist=ms_dist.merge(ms_dist_all)
-# ms_dist['Share_Distance']=ms_dist['Trip_Distance_Weighted']/ms_dist['Trip_Distance_All']
-# ms_dist.drop(columns=['Trip_Distance_Weighted','Trip_Distance_All'],inplace=True)
-
-# # convert from long to wide 
-# msdp=ms_dist.pivot(index='Ori_geo_unit',columns=['Mode'])
-# msdp.columns = ['_'.join(col) for col in msdp.columns.values]
-# msdp.reset_index(inplace=True)
-# msdp.to_csv('../outputs/Summary_geounits/' + city + '_modeshare_origin.csv',index=False)
 
 # mode share of trip distance by residential geocode
 ms_dist_all_res=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum())
@@ -417,21 +397,27 @@ msdrp.reset_index(inplace=True)
 
 # avg travel km/day/cap by postcode of residence
 # first calculate weighted number of surveyed people by postcode
-plz_per_weight=pd.DataFrame(sHPW[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index() 
+sP=sP.loc[~sP['HH_PNR'].isin(na_PNR),:]
+plz_per_weight=pd.DataFrame(sP[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['Per_Weight'].sum()).reset_index()
+# this is a new approach, consistent with the city-wide one, for calculating km/cap in surveys where trip weight and per weight are different. we use the Trip_Weight_Persons as a denominator
+plz_TW_mean=sW[['Res_geocode', 'HH_PNR','Trip_Weight']].drop_duplicates().groupby(['Res_geocode'])['Trip_Weight'].mean().reset_index()
+plz_pu=sP[['Res_geocode', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_PNR'].size().reset_index()
+plz_TW_mean=plz_TW_mean.merge(plz_pu)
+plz_TW_mean['Trip_Weight_Persons']=plz_TW_mean['Trip_Weight']*plz_TW_mean['HH_PNR']
 # next calculate sum weighted travel distance by residence postcode
 plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
-plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
+plz_dist_weight=plz_dist_weight.merge(plz_TW_mean)
 # then divide
-plz_dist_weight['Daily_Distance_Person']=0.001*round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Per_Weight'])
-plz_dist_weight.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
+plz_dist_weight['Daily_Distance_Person']=0.001*round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Trip_Weight_Persons'])
+plz_dist_weight.drop(columns=['Trip_Distance_Weighted','Trip_Weight_Persons'],inplace=True)
 # and car travel distance by residence postcode
 plz_dist_car=pd.DataFrame(sHPW.loc[sHPW['Mode']=='Car',:].groupby(['Res_geocode'])['Trip_Distance_Weighted'].sum()).reset_index()
-plz_dist_car=plz_dist_car.merge(plz_per_weight)
-plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Per_Weight'])
-plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
+plz_dist_car=plz_dist_car.merge(plz_TW_mean)
+plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Trip_Weight_Persons'])
+plz_dist_car.drop(columns=['Trip_Distance_Weighted','Trip_Weight_Persons'],inplace=True)
 
 # car ownhership rates by household
-plz_hh_weight=pd.DataFrame(sHPW[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+plz_hh_weight=pd.DataFrame(sH[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
 plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
 plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
 plz_hh_car=plz_hh_car.merge(plz_hh_weight)
@@ -461,21 +447,25 @@ msdrp.reset_index(inplace=True)
 
 # avg travel km/day/cap by postcode of residence
 # first calculate weighted number of surveyed people by postcode
-plz_per_weight=pd.DataFrame(sHPW[['Res_geo_unit', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['Per_Weight'].sum()).reset_index() 
+plz_per_weight=pd.DataFrame(sP[['Res_geo_unit', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['Per_Weight'].sum()).reset_index()
+plz_TW_mean=sHPW[['Res_geo_unit', 'HH_PNR','Trip_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['Trip_Weight'].mean().reset_index()
+plz_pu=sP[['Res_geo_unit', 'HH_PNR','Per_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['HH_PNR'].size().reset_index()
+plz_TW_mean=plz_TW_mean.merge(plz_pu)
+plz_TW_mean['Trip_Weight_Persons']=plz_TW_mean['Trip_Weight']*plz_TW_mean['HH_PNR']
 # next calculate sum weighted travel distance by residence postcode
 plz_dist_weight=pd.DataFrame(sHPW.groupby(['Res_geo_unit'])['Trip_Distance_Weighted'].sum()).reset_index()
-plz_dist_weight=plz_dist_weight.merge(plz_per_weight)
+plz_dist_weight=plz_dist_weight.merge(plz_TW_mean)
 # then divide
-plz_dist_weight['Daily_Distance_Person']=0.001*round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Per_Weight'])
-plz_dist_weight.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
+plz_dist_weight['Daily_Distance_Person']=0.001*round(plz_dist_weight['Trip_Distance_Weighted']/plz_dist_weight['Trip_Weight_Persons'])
+plz_dist_weight.drop(columns=['Trip_Distance_Weighted','Trip_Weight_Persons'],inplace=True)
 # and car travel distance by residence postcode
 plz_dist_car=pd.DataFrame(sHPW.loc[sHPW['Mode']=='Car',:].groupby(['Res_geo_unit'])['Trip_Distance_Weighted'].sum()).reset_index()
-plz_dist_car=plz_dist_car.merge(plz_per_weight)
-plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Per_Weight'])
-plz_dist_car.drop(columns=['Trip_Distance_Weighted','Per_Weight'],inplace=True)
+plz_dist_car=plz_dist_car.merge(plz_TW_mean)
+plz_dist_car['Daily_Distance_Person_Car']=0.001*round(plz_dist_car['Trip_Distance_Weighted']/plz_dist_car['Trip_Weight_Persons'])
+plz_dist_car.drop(columns=['Trip_Distance_Weighted','Trip_Weight_Persons'],inplace=True)
 
 # car ownhership rates by household
-plz_hh_weight=pd.DataFrame(sHPW[['Res_geo_unit', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
+plz_hh_weight=pd.DataFrame(sH[['Res_geo_unit', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
 plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geo_unit', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geo_unit'])['HH_Weight'].sum()).reset_index() 
 plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
 plz_hh_car=plz_hh_car.merge(plz_hh_weight)
