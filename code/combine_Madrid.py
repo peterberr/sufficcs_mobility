@@ -418,7 +418,7 @@ plz_dist_car.drop(columns=['Trip_Distance_Weighted','Trip_Weight_Persons'],inpla
 
 # car ownhership rates by household
 plz_hh_weight=pd.DataFrame(sH[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
-plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+plz_hh_car=pd.DataFrame(sH.loc[sH['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
 plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
 plz_hh_car=plz_hh_car.merge(plz_hh_weight)
 plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)

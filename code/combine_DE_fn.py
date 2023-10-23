@@ -502,7 +502,7 @@ def combine_survey_data(city):
     # car ownership rates by household
     plz_hh_weight=pd.DataFrame(sH[['Res_geocode', 'HHNR','HH_Weight']].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
     # plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarAvailable']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
-    plz_hh_car=pd.DataFrame(sHPW.loc[sHPW['CarOwnershipHH']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
+    plz_hh_car=pd.DataFrame(sH.loc[sH['CarOwnershipHH']==1,('Res_geocode', 'HHNR','HH_Weight')].drop_duplicates().groupby(['Res_geocode'])['HH_Weight'].sum()).reset_index() 
     plz_hh_car.rename(columns={'HH_Weight':'HH_WithCar'},inplace=True)
     plz_hh_car=plz_hh_car.merge(plz_hh_weight)
     plz_hh_car['CarOwnership_HH']=round(plz_hh_car['HH_WithCar']/plz_hh_car['HH_Weight'],3)
