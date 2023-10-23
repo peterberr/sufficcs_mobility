@@ -60,15 +60,6 @@ wien_ext=pd.concat([wien,wien_la.loc[:,('ID', 'NAME', 'geometry', 'ID_int', 'are
 
 print('Area: ', wien_ext['area'].sum())
 
-# read in Austria population by municipality, source: https://www.data.gv.at/katalog/dataset/1dd64998-6836-3871-ac89-443f742bdc68
-pop=pd.read_csv('../../MSCA_data/Austria_Population/OGD_f0743_VZ_HIS_GEM_3.csv',sep=';')
-# rename columns
-pop.columns=['ID','Year','Population']
-# extract data only from the census year 2011
-pop=pop.loc[pop['Year']=='H88-15',]
-# make a municipality column based on the last 5 digits of the ID
-pop['gem']=pop['ID'].map(lambda x: x[-5:])
-
 # create a dictionary to map the old municipality ids to the new ones which took effect after the dissolution of the Bezirk Wien-Umgebung https://de.wikipedia.org/wiki/Bezirk_Wien-Umgebung
 # this is not a comprehensive list, only those caught by the buffer around Wien are included
 dict={'32403':'31949', # Gablits
@@ -83,11 +74,18 @@ dict={'32403':'31949', # Gablits
 '32419':'30740', # Schwechat
 '32424':'30741' # Zwölfaxing
 }
+
 # create a new ID column containing the updated IDs
 wien_ext.loc[:,'ID2']=wien_ext.loc[:,'ID'].replace(dict)
 
+# load pop data by municipality for 2014
+pop=pd.read_csv('../../MSCA_data/Austria_Population/pop_Wien_ext.csv',encoding='latin-1')
+pop['geocode']=pop['geocode'].astype(str)
+pop['Gemeindebezirk']=pop['Gemeindebezirk'].str[:-8]
+pop['Population']=pop['2014']
 # merge the shapefile with the population data and calculate densities
-wien_ext=wien_ext.merge(pop.drop(columns='ID'),left_on='ID2',right_on='gem')
+wien_ext=wien_ext.loc[:,['ID2','NAME','state','area','geometry']].merge(pop.loc[:,['Gemeindebezirk','geocode','Population']],left_on='ID2',right_on='geocode')
+#wien_ext=wien_ext.merge(pop.drop(columns='ID'),left_on='ID2',right_on='gem')
 wien_ext['Density']=wien_ext['Population']/wien_ext['area']
 
 city_center_buffer2=centers.loc[city_center_buffer['City']=='Wien',].copy()
@@ -111,8 +109,8 @@ boundary['crs']=crs0
 boundary.to_csv('../outputs/city_boundaries/' + city + '.csv',index=False)
 
 # save the gdfs and dict
-wien_ext=wien_ext.loc[:,('ID2','geometry','NAME','state','Population','area','Density')]
-wien_ext.rename(columns={'ID2':'geocode'},inplace=True )
+# save the gdfs and dict
+wien_ext=wien_ext.loc[:,('geocode','geometry','Gemeindebezirk','state','Population','area','Density')]
 wien_ext.sort_values(by='geocode',inplace=True)
 wien_ext.to_csv('../outputs/density_geounits/' + city + '_pop_density.csv',index=False)
 
