@@ -282,7 +282,7 @@ pop_dens=pd.read_csv('../outputs/density_geounits/' + city + '_pop_density_mixre
 pop_dens.drop(columns=['geometry','area'],inplace=True)
 # building density and distance to city center
 bld_dens=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist.csv',dtype={'geocode':str})
-bld_dens.drop(columns=['wgt_center'],inplace=True)
+bld_dens.drop(columns=['wgt_center','minDist_subcenter','Distance2Center'],inplace=True)
 d2=pd.read_csv('../outputs/CenterSubcenter/' + city + '_dist_hires.csv',dtype={'geocode':str})
 d2.drop(columns=['wgt_center','build_vol_density'],inplace=True)
 # connectivity stats

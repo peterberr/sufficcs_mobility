@@ -197,12 +197,22 @@ def dens_DE(city):
 
     gdf_plz.drop(columns='geometry').to_csv('../outputs/density_geounits/'+city+'_pop_density.csv',index=False)
 
+    area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+
     summ=gdf_plz.loc[:,['Area','Pop_2018']].sum().reset_index()
     summ=pd.concat([summ,pd.DataFrame([{'index':'density',0:summ.iloc[1,1]/summ.iloc[0,1]}])])
     summ.rename(columns={'index':'variable',0:'value'},inplace=True)
-    summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
+    # summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
 
-        
+    area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+    writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
+    area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+    area_lores.to_excel(writer, sheet_name='area_lores',index=False)
+    summ.to_excel(writer, sheet_name='area_pop_sum',index=False)
+    # Close the Pandas Excel writer and output the Excel file.
+    writer.save()
+    writer.close()
+
 cities_DE=pd.Series(['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
 cities_DE.apply(dens_DE)
 
@@ -233,4 +243,15 @@ gdf_plz.drop(columns='geometry').to_csv('../outputs/density_geounits/'+city+'_po
 summ=gdf_plz.loc[:,['Area','Pop_2018']].sum().reset_index()
 summ=pd.concat([summ,pd.DataFrame([{'index':'density',0:summ.iloc[1,1]/summ.iloc[0,1]}])])
 summ.rename(columns={'index':'variable',0:'value'},inplace=True)
-summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
+# summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
+area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
+area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+area_lores.to_excel(writer, sheet_name='area_lores',index=False)
+summ.to_excel(writer, sheet_name='area_pop_sum',index=False)
+# Close the Pandas Excel writer and output the Excel file.
+writer.save()
+writer.close()
+
+# area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+# area_lores.to_csv('../outputs/density_geounits/areadist_'+city+'.csv',index=False)
