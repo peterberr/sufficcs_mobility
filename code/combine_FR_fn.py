@@ -876,7 +876,7 @@ def combine_survey_data(city):
         fig.suptitle("Trip Mode by Purpose & Distance, " + city, fontsize=22,y=0.95)
         fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
 
-#cities=pd.Series(['Clermont', 'Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
-cities=pd.Series(['Clermont','Toulouse'])
+cities=pd.Series(['Clermont', 'Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
+#cities=pd.Series(['Clermont','Toulouse'])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)

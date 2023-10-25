@@ -1,5 +1,6 @@
 # script to calculat population density by spatial units in French cities
-# last update Peter Berrill June 6 2023
+# this is the new version which uses overlay functions to estimate local populations
+# last update Peter Berrill Oct 25 2023
 
 import pandas as pd
 import geopandas as gpd
@@ -49,8 +50,8 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=remove_holes(gdf2,100,city)
 
         # calculate area of geo units for each gdf
-        gdf['area']=gdf.area*1e-6 # in km2
-        gdf2['area']=gdf2.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6 # in km2
+        gdf2['area_lores']=gdf2.area*1e-6
 
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'DFIN':'geo_unit_highres'},inplace=True)
@@ -62,8 +63,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Montpellier':
         dep='34'
@@ -74,7 +76,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gdf.to_crs(crs0)
         gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
         gdf=remove_holes(gdf,100,city)
-        gdf['area']=gdf.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
         fp2='../../MSCA_data/FranceRQ/lil-0937_Montpellier.csv/Doc/SIG/EDGT Montpellier_EDVM Beziers_DTIR.mid'
@@ -86,7 +88,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=gdf2.to_crs(crs0)
         gdf2=remove_invalid_geoms(gdf2,crs0,'gdf2',city)
         gdf2=remove_holes(gdf2,100,city)
-        gdf2['area']=gdf2.area*1e-6
+        gdf2['area_lores']=gdf2.area*1e-6
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'NUM_ZF_2013':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'NUM_SECTEUR':'geo_unit'},inplace=True)
@@ -97,8 +99,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Lyon': # think i use the .tab file https://stackoverflow.com/questions/22218069/how-to-load-mapinfo-file-into-geopandas for mapinfo gis file
         dep='69'
@@ -113,7 +116,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gdf.to_crs(crs0)
         gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
         gdf=remove_holes(gdf,100,city)
-        gdf['area']=gdf.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
         fp2='../../MSCA_data/FranceRQ/lil-1023_Lyon.csv/Doc/SIG/EDGT_AML2015_DTIR.TAB'
@@ -123,7 +126,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=gdf2.to_crs(crs0)
         gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
         gdf2=remove_holes(gdf2,100,city)
-        gdf2['area']=gdf2.area*1e-6
+        gdf2['area_lores']=gdf2.area*1e-6
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'ZF2015_Nouveau_codage':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'DTIR':'geo_unit'},inplace=True)
@@ -134,8 +137,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Toulouse':
         dep='31'
@@ -156,8 +160,8 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
         gdf2=remove_holes(gdf2,100,city)
         # # calculate area of geo units for each gdf
-        gdf['area']=gdf.area*1e-6 # in km2
-        gdf2['area']=gdf2.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6 # in km2
+        gdf2['area_lores']=gdf2.area*1e-6
         # # rename geounits for constitency with all French cities
         gdf.rename(columns={'ZF_SEC_EMD2013':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'SECTEUR_EMD2013':'geo_unit'},inplace=True)
@@ -168,8 +172,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Nantes': 
         dep='44'
@@ -183,7 +188,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gdf.to_crs(crs0)
         gdf=remove_invalid_geoms(gdf,crs0,'gdf',city)
         gdf=remove_holes(gdf,100,city)
-        gdf['area']=gdf.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
         fp2='../../MSCA_data/FranceRQ/lil-1024_Nantes.csv/Doc/SIG/EDGT44_2015_DTIR.TAB'
@@ -193,7 +198,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=gdf2.to_crs(crs0)
         gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
         gdf2=remove_holes(gdf2,100,city)
-        gdf2['area']=gdf2.area*1e-6
+        gdf2['area_lores']=gdf2.area*1e-6
 
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'Id_zf_cerema':'geo_unit_highres'},inplace=True)
@@ -205,8 +210,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Nimes':
         dep='30'
@@ -219,7 +225,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gdf.to_crs(crs0)
         gdf=remove_invalid_geoms(gdf,crs0, 'gdf',city)
         gdf=remove_holes(gdf,100,city)
-        gdf['area']=gdf.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
         fp2='../../MSCA_data/FranceRQ/lil-1135_Nimes.csv/Doc/SIG/EMD_Nimes_2014_2015_DTIR.TAB' 
@@ -230,7 +236,7 @@ def french_density_shapefiles(city,size_thresh):
         # clean up and add area
         gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2',city)
         gdf2=remove_holes(gdf2,100,city)
-        gdf2['area']=gdf2.area*1e-6
+        gdf2['area_lores']=gdf2.area*1e-6
 
         # # rename geounits for constitency with all French cities
         gdf.rename(columns={'NUM_ZF_2013':'geo_unit_highres'},inplace=True)
@@ -242,8 +248,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
         
     if city=='Dijon':
         dep='21'
@@ -256,7 +263,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf=gdf.to_crs(crs0)
         gdf=remove_invalid_geoms(gdf,crs0, 'gdf', city)
         gdf=remove_holes(gdf,100,city)
-        gdf['area']=gdf.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
         fp2='../../MSCA_data/FranceRQ/lil-1214_Dijon.csv/Doc/SIG/EDGT_DIJON_2016_DTIR.TAB' 
@@ -266,7 +273,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=gdf2.to_crs(crs0)
         gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
         gdf2=remove_holes(gdf2,100,city)
-        gdf2['area']=gdf2.area*1e-6
+        gdf2['area_lores']=gdf2.area*1e-6
 
         # rename geounits for constitency with all French cities
         gdf.rename(columns={'NUM_ZF':'geo_unit_highres'},inplace=True)
@@ -278,8 +285,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Lille':
         dep='59'
@@ -293,7 +301,7 @@ def french_density_shapefiles(city,size_thresh):
         # clean up and add area
         gdf=remove_invalid_geoms(gdf,crs0, 'gdf', city)
         gdf=remove_holes(gdf,100,city)
-        gdf['area']=gdf.area*1e-6
+        gdf['area_hires']=gdf.area*1e-6
 
         # load a shapefile consisting only of the larger sector geo units
         fp2='../../MSCA_data/FranceRQ/lil-1152_Lille.csv/Doc/SIG/EDGT_LILLE_2016_DTIR.TAB'
@@ -303,7 +311,7 @@ def french_density_shapefiles(city,size_thresh):
         gdf2=gdf2.to_crs(crs0)
         gdf2=remove_invalid_geoms(gdf2,crs0, 'gdf2', city)
         gdf2=remove_holes(gdf2,100,city)
-        gdf2['area']=gdf2.area*1e-6
+        gdf2['area_lores']=gdf2.area*1e-6
         # # rename geounits for constitency with all French cities
         gdf.rename(columns={'ZFIN2016F':'geo_unit_highres'},inplace=True)
         gdf.rename(columns={'ST':'geo_unit'},inplace=True)
@@ -314,8 +322,9 @@ def french_density_shapefiles(city,size_thresh):
         iris_gdf=iris_gdf.to_crs(crs0)
         # set the center of the IRIS polygons as the shapefile geometry 
         iris_gdf['center']=iris_gdf.centroid
-        iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
-        iris_gdf.set_geometry('center',inplace=True)
+        iris_gdf['iris_area']=iris_gdf.area*1e-6
+        # iris_gdf.rename(columns={'geometry':'polygon_iris'},inplace=True)
+        # iris_gdf.set_geometry('center',inplace=True)
 
     if city=='Paris': # first do for Paris 
         # define boundary as Paris, plus departments Hauts-de-Seine, Seine-St Deint, and Val-de-Marne, plus selected communes in the departments of Essonne and Val-d'Oise. 
@@ -576,196 +585,160 @@ def french_density_shapefiles(city,size_thresh):
 
         fp = '../../MSCA_data/France_Population/infra-population-2012/base-ic-evol-struct-pop-2012.csv'
         pop12=pd.read_csv(fp,sep=',')
-
         # extract the population only for the relevant dept
         pop12['Dep']=pop12['IRIS'].str[:2]
         pop17['Dep']=pop17['IRIS'].str[:2]
         pop12_dep=pop12.loc[pop12['Dep']==dep,:]
         pop17_dep=pop17.loc[pop17['Dep']==dep,:]
 
-        # use outer merges here to keep rows with iris codes which may not exist in either 2012 or 2017 
-        sec_iris_pop=sec_iris.merge(pop12_dep,left_on='DCOMIRIS',right_on='IRIS',how='outer')
-        sec_iris_pop=sec_iris_pop.drop(columns='DCOMIRIS').merge(pop17_dep[['IRIS','P17_POP']],left_on='IRIS',right_on='IRIS',how='outer')
-        # calculate total population by  survey sector
-        sec_pop=sec_iris_pop.groupby('geo_unit')['P12_POP'].sum().to_frame().reset_index()
-        sec_pop['P12_POP']=round(sec_pop['P12_POP'])
-        sec_pop17=sec_iris_pop.groupby('geo_unit')['P17_POP'].sum().to_frame().reset_index()
-        sec_pop17['P17_POP']=round(sec_pop17['P17_POP'])
-        sec_pop=sec_pop.merge(sec_pop17)
+        iris_gdf=iris_gdf.drop(columns='IRIS').merge(pop17_dep,left_on='DCOMIRIS',right_on='IRIS',how='outer')
+        iris_gdf=iris_gdf.drop(columns=['Dep','IRIS']).merge(pop12_dep,left_on='DCOMIRIS',right_on='IRIS',how='outer')
+        print('N iris with pop data but no iris code: ', len(iris_gdf.loc[iris_gdf['DCOMIRIS'].isna()]))
+        iris_gdf.dropna(subset='DCOMIRIS',inplace=True)
+        iris_gdf['P12_POP'].fillna(0,inplace=True)
+        iris_gdf['P17_POP'].fillna(0,inplace=True)
 
         # interpolate to get population in bw 2012 and 2017 if necessary.
         xp=[2012, 2017]
-        sec_pop['P13_POP']=sec_pop['P14_POP']=sec_pop['P15_POP']=sec_pop['P16_POP']=np.nan
-        for gu in sec_pop['geo_unit']:
-            yp=sec_pop.loc[sec_pop['geo_unit']==gu,['P12_POP','P17_POP']].values[0]
-            sec_pop.loc[sec_pop['geo_unit']==gu,['P13_POP','P14_POP','P15_POP','P16_POP']]=np.interp([2013,2014,2015,2016],xp,yp)
+        iris_gdf['P13_POP']=iris_gdf['P14_POP']=iris_gdf['P15_POP']=iris_gdf['P16_POP']=np.nan
+        for gu in iris_gdf['DCOMIRIS']:
+            yp=iris_gdf.loc[iris_gdf['DCOMIRIS']==gu,['P12_POP','P17_POP']].values[0]
+            iris_gdf.loc[iris_gdf['DCOMIRIS']==gu,['P13_POP','P14_POP','P15_POP','P16_POP']]=np.interp([2013,2014,2015,2016],xp,yp)
 
-        # mergre the sum populations into the low-res gdf2
-        gdf2=gdf2.merge(sec_pop)
+        # identify the correct population data to use
         if survey_yr==2012:
-            gdf2['Population']=gdf2['P12_POP']
+            iris_gdf['Population']=iris_gdf['P12_POP']
 
         if survey_yr==2013:
-            gdf2['Population']=gdf2['P13_POP']
+            iris_gdf['Population']=iris_gdf['P13_POP']
 
         if survey_yr==2014:
-            gdf2['Population']=gdf2['P14_POP']
+            iris_gdf['Population']=iris_gdf['P14_POP']
 
         if survey_yr==2015:
-            gdf2['Population']=gdf2['P15_POP']
+            iris_gdf['Population']=iris_gdf['P15_POP']
 
         if survey_yr==2016:
-            gdf2['Population']=gdf2['P16_POP']
+            iris_gdf['Population']=iris_gdf['P16_POP']
 
         if survey_yr==2017:
-            gdf2['Population']=gdf2['P17_POP']
+            iris_gdf['Population']=iris_gdf['P17_POP']
 
-        gdf2['Density']=gdf2['Population']/gdf2['area']
+        # to deal with points, zero area geoms:
+        if any(gdf['area_hires']==0) | any(gdf['geometry'].geom_type.values == 'Point'):
+            gdf.loc[gdf['area_hires']==0,'geometry']=gdf.loc[gdf['area_hires']==0].buffer(5) # make it a 5m radius circle
+            gdf.loc[gdf['area_hires']==0,'area_hires']=gdf.loc[gdf['area_hires']==0].area*1e-6
 
-        # merge in the population counts to the iris gdfs
-        iris_gdf['area']=iris_gdf['polygon_iris'].area*1e-6
-        iris_gdf=iris_gdf.drop(columns='IRIS').merge(pop17_dep.drop(columns='Dep'),left_on='DCOMIRIS',right_on='IRIS',how='outer')
-        iris_gdf=iris_gdf.drop(columns='IRIS').merge(pop12_dep.drop(columns='Dep'),left_on='DCOMIRIS',right_on='IRIS',how='outer')
-        iris_gdf['Density_2012']=iris_gdf['P12_POP']/iris_gdf['area']
-        iris_gdf['Density_2017']=iris_gdf['P17_POP']/iris_gdf['area']
+        # create overlay bw high-res gdf and census sections and population
+        over_hi = gdf.overlay(iris_gdf, how='intersection')
+        over_hi['area_over']=over_hi.area*1e-6
+        # calculate population by overlay area
+        over_hi['iris_density']=over_hi['Population']/over_hi['iris_area']
+        over_hi['area_share']=over_hi['area_over']/over_hi['iris_area']
+        over_hi['Pop_calc']=over_hi['area_share']*over_hi['Population']
 
-        # spatial join with iris polygons to combine the highres shapefile with the iris population density data
-        gdf0=gdf.copy()
-        gdf0['polygon_ZF']=gdf0.loc[:,'geometry']
-        gdf0['center']=gdf0.centroid
-        gdf0.set_geometry('center',inplace=True)
-        iris_gdf_copy=iris_gdf.copy()
-        iris_gdf_copy.set_geometry('polygon_iris',inplace=True)
+        # sum population by highres gdf
+        over_hi_sums=over_hi.groupby('geo_unit_highres')['Pop_calc'].sum().to_frame().reset_index()
+        over_hi_sums=gpd.GeoDataFrame(over_hi_sums.merge(gdf.loc[:,['geo_unit_highres','geo_unit','area_hires','geometry']]))
+        over_hi_sums['Density']=over_hi_sums['Pop_calc']/over_hi_sums['area_hires']
+        over_hi_sums.sort_values(by='geo_unit_highres',inplace=True)
 
-        large=gdf2.loc[gdf2['area']>size_thresh,'geo_unit']
-        # here is the join
-        gdfj=gpd.sjoin(gdf0,iris_gdf_copy[['DCOMIRIS','polygon_iris','Density_2012','Density_2017']],how='left',predicate='within')
-        gdfj.set_geometry('polygon_ZF',inplace=True)
-        # check for nas
+        # calculate population per low-res unit by summing the high-res
+        over_lo_sums=over_hi_sums.groupby('geo_unit')['Pop_calc'].sum().reset_index()
+        over_lo_sums.rename(columns={'Pop_calc':'Pop_calc_lo_sum'},inplace=True)
+        over_lo_sums=gpd.GeoDataFrame(over_lo_sums.merge(gdf2.loc[:,['geo_unit','area_lores','geometry']]))
+        over_lo_sums['Density']=over_lo_sums['Pop_calc_lo_sum']/over_lo_sums['area_lores']
 
-        if any(gdfj['Density_2017'].isna()):
-            print(city + ' merged with loss of 2017 IRIS population data')
+        gdf_lo=over_lo_sums.copy()
+        gdf_hi=over_hi_sums.copy()
 
-        if any(gdfj['Density_2012'].isna()):
-            print(city + ' merged with loss of 2012 IRIS population data')
+        gdf_lo.rename(columns={'Pop_calc_lo_sum':'Population'},inplace=True) # ,'area_lores':'area'
+        gdf_hi.rename(columns={'Pop_calc':'Population'},inplace=True) # ,'area_hires':'area'
 
-        if (any(gdfj['Density_2017'].isna()) == False) & (any(gdfj['Density_2012'].isna()) == False):
-            print(city + ' merged without loss of any IRIS population data')
+        # now make the mixed res gdf
+        size_thresh=10
+        large=gdf_lo.loc[gdf_lo['area_lores']>size_thresh,'geo_unit']
+        sub=gdf_hi.loc[gdf_hi['geo_unit'].isin(large),:]
 
-        # interpolate again, this time of densities at the high-res level
-        xp=[2012, 2017]
-        gdfj['Density_2013']=gdfj['Density_2014']=gdfj['Density_2015']=gdfj['Density_2016']=np.nan
-        for gu in gdfj['geo_unit_highres']:
-            yp=gdfj.loc[gdfj['geo_unit_highres']==gu,['Density_2012','Density_2017']].values[0]
-            gdfj.loc[gdfj['geo_unit_highres']==gu,['Density_2013','Density_2014','Density_2015','Density_2016']]=np.interp([2013,2014,2015,2016],xp,yp)
+        sub2=over_hi.loc[over_hi['geo_unit'].isin(large),:]
+        sub22=sub2.copy()
+        sub22.sort_values(by='area_over',ascending=False,inplace=True)
+        sub22.drop_duplicates(subset='geo_unit_highres',keep='first',inplace=True)
 
-        # check for 0 areas in gdfj, and if they exist, 'fold' them into the containing polygons
-        if any(gdfj['area']==0) | any(gdfj['geometry'].geom_type.values == 'Point'):
-            point_code2=pd.DataFrame(gdfj.loc['Point' == gdfj['geometry'].geom_type.values,'geo_unit_highres'])
-            point_code2['containing']='0'
-            if (city=='Lyon'):
-                # remove point geom coded '247551' which is contained in the faulty geometry '247003', add in at the end
-                point_code2=point_code2.loc[point_code2['geo_unit_highres']!='247551',:]
+        # make a list/dictionary of high-res geounits and corresponding IRIS codes, taking the IRIS which has largest area in the overlap
+        hr_iris=sub22[['geo_unit_highres','DCOMIRIS']]
+        hr_iris.sort_values(by='geo_unit_highres',inplace=True)
+        hr_iris.reset_index(inplace=True,drop=True)
 
-            for p in point_code2['geo_unit_highres']:
-                indexer =point_code2[point_code2.geo_unit_highres==p].index.values[0]
-                m=gdfj['geometry'].contains(gdfj.loc[indexer, 'geometry'])
-                m=m[m.index!=indexer]
-                mix=m.index[np.where(m)][0]
-                point_code2.loc[indexer,'containing']=gdfj.loc[mix,'geo_unit_highres']
+        # merge the IRIS codes into sub
+        sub=sub.merge(hr_iris)
+        # calculate sum pop by IRISH in sub
+        sub_pop_sum=sub.groupby('DCOMIRIS')['Population'].sum().reset_index()
 
-            if (city=='Lyon'):
-                point_code2=pd.concat([point_code2, pd.DataFrame({'geo_unit_highres':['247551'],'containing':['247003']})])
-            # remove the points from the gdfj gdf, not running this for now, as urban form metrics can be calculated later as a buffer around selected points, as necessary, and as is done in the lines ummediately above
-            # gdfj_nopoints=gdfj.loc[~gdfj['geo_unit_highres'].isin(point_code2['geo_unit_highres']),]
+        # create dissolved sub, by IRIS
+        sub_diss=sub.dissolve(by='DCOMIRIS').reset_index()
+        sub_diss.sort_values(by='geo_unit_highres',inplace=True)
+        sub_diss['diss_area']=sub_diss.area*1e-6
 
-        sub=gdfj.loc[gdfj['geo_unit'].isin(large),]
+        # add in population to the dissolved df and calculate density
+        sub_pop_sum.rename(columns={'Population':'Population_diss'},inplace=True)
+        sub_diss=sub_diss.merge(sub_pop_sum)
+        sub_diss['Density_diss']=sub_diss['Population_diss']/sub_diss['diss_area']
 
-        # reformat sub to be concatenated with gdf2
-        if survey_yr==2012:
-            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2012','DCOMIRIS']]
-            sub.rename(columns={'geo_unit_highres':'geocode','Density_2012':'Density'},inplace=True)
+        # Make a dict of the sub codes so that the representative unit can be mapped to from each individual highres geounit
+        sub_dict=sub_diss[['DCOMIRIS','geo_unit_highres']]
+        sub_dict.rename(columns={'geo_unit_highres':'geo_unit_rep'},inplace=True)
+        sub_dict=sub_dict.merge(sub[['DCOMIRIS','geo_unit_highres']])
+        sub_dict=sub_dict.loc[:,['geo_unit_highres','geo_unit_rep']]
+        sub_dict.sort_values(by='geo_unit_highres',inplace=True)
 
-        if survey_yr==2013:
-            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2013','DCOMIRIS']]
-            sub.rename(columns={'geo_unit_highres':'geocode','Density_2013':'Density'},inplace=True)
+        sub_diss=sub_diss.loc[:,['geo_unit_highres','geometry','diss_area','Population_diss', 'Density_diss']]
+        sub_diss.rename(columns={'geo_unit_highres':'geocode','diss_area':'area','Population_diss':'Population','Density_diss':'Density'},inplace=True)
+        # finally create the mixed res gdf
+        gdf_mix=gdf_lo.loc[~gdf_lo['geo_unit'].isin(large),('geo_unit','geometry','area_lores','Population','Density')]
+        gdf_mix.rename(columns={'geo_unit':'geocode','area_lores':'area'},inplace=True)
+        gdf_mix['geocode']=gdf_mix['geocode'].astype(int).astype(str)
+        gdf_mix['source']='large_units'
+        sub_diss['source']='small_units_agg'
+        gdf_mix=gpd.GeoDataFrame(pd.concat([gdf_mix,sub_diss], ignore_index=True))
+        gdf_mix=gdf_mix.sort_values(by='geocode')
 
-        if survey_yr==2014:
-            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2014','DCOMIRIS']]
-            sub.rename(columns={'geo_unit_highres':'geocode','Density_2014':'Density'},inplace=True)
+        dict1=over_hi_sums.loc[~over_hi_sums['geo_unit_highres'].isin(hr_iris['geo_unit_highres']),['geo_unit_highres','geo_unit']]
+        dict1.rename(columns={'geo_unit':'geo_unit_rep'},inplace=True)
+        # make combined geodict
+        geo_dict=pd.DataFrame(pd.concat([dict1,sub_dict]))
+        geo_dict.sort_values(by='geo_unit_highres',inplace=True)
+        geo_dict.reset_index(inplace=True,drop=True)
 
-        if survey_yr==2015:
-            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2015','DCOMIRIS']]
-            sub.rename(columns={'geo_unit_highres':'geocode','Density_2015':'Density'},inplace=True)
+        if all(geo_dict['geo_unit_highres']==gdf_hi['geo_unit_highres']):
+            print('dictionary contains all hires codes')
+        geo_dict=geo_dict.set_index('geo_unit_highres').T.to_dict('records')[0]
 
-        if survey_yr==2016:
-            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2016','DCOMIRIS']]
-            sub.rename(columns={'geo_unit_highres':'geocode','Density_2016':'Density'},inplace=True)
+        # # check for 0 areas in gdfj, and if they exist, 'fold' them into the containing polygons
+        # if any(gdfj['area']==0) | any(gdfj['geometry'].geom_type.values == 'Point'):
+        #     point_code2=pd.DataFrame(gdfj.loc['Point' == gdfj['geometry'].geom_type.values,'geo_unit_highres'])
+        #     point_code2['containing']='0'
+        #     if (city=='Lyon'):
+        #         # remove point geom coded '247551' which is contained in the faulty geometry '247003', add in at the end
+        #         point_code2=point_code2.loc[point_code2['geo_unit_highres']!='247551',:]
 
-        if survey_yr==2017:
-            sub=sub.loc[:,['geo_unit_highres','geometry','area','Density_2017','DCOMIRIS']]
-            sub.rename(columns={'geo_unit_highres':'geocode','Density_2017':'Density'},inplace=True)
+        #     for p in point_code2['geo_unit_highres']:
+        #         indexer =point_code2[point_code2.geo_unit_highres==p].index.values[0]
+        #         m=gdfj['geometry'].contains(gdfj.loc[indexer, 'geometry'])
+        #         m=m[m.index!=indexer]
+        #         mix=m.index[np.where(m)][0]
+        #         point_code2.loc[indexer,'containing']=gdfj.loc[mix,'geo_unit_highres']
 
-        iris_dict=pd.DataFrame(sub.loc[:,['geocode','DCOMIRIS']])
-        iris_first=iris_dict.groupby('DCOMIRIS')['geocode'].first().reset_index()
-        iris_first.rename(columns={'geocode':'geocode_first'},inplace=True)
-        iris_dict=iris_dict.merge(iris_first)
+        #     if (city=='Lyon'):
+        #         point_code2=pd.concat([point_code2, pd.DataFrame({'geo_unit_highres':['247551'],'containing':['247003']})])
+        #     # remove the points from the gdfj gdf, not running this for now, as urban form metrics can be calculated later as a buffer around selected points, as necessary, and as is done in the lines ummediately above
+        #     # gdfj_nopoints=gdfj.loc[~gdfj['geo_unit_highres'].isin(point_code2['geo_unit_highres']),]
 
-        subiris=sub.dissolve(by='DCOMIRIS')
-        subiris.reset_index(drop=False,inplace=True)
-        # recalculate area. densities are correctly calculated using the 'first' aggfunc in dissolve
-        subiris['area']=subiris.area*1e-6
-        subiris=subiris.loc[:,('geocode','geometry','area','Density')]
-        
-        # reformate gdf2 to be concatenated with sub
-        gdf2_concat=gdf2.loc[~gdf2['geo_unit'].isin(large),('geo_unit','geometry','area','Density')]
-        gdf2_concat.rename(columns={'geo_unit':'geocode'},inplace=True)
-        gdf2_concat['geocode']=gdf2_concat.loc[:,'geocode'].astype('str')
-
-        gdf2_concat['source']='large_units'
-        subiris['source']='small_units_agg'
-        sub['source']='small_units'
-
-        gdf_mixed=gpd.GeoDataFrame(pd.concat([gdf2_concat,subiris.loc[:,('geocode','geometry','area','Density','source')]], ignore_index=True))
-        gdf_mixed=remove_holes(gdf_mixed,100,city)
-        gdf_mixed.sort_values(by='geocode',inplace=True)
-
-        # make the dictionary to translate the geocodes from the survey to the ones needed to merge with the geospatial data
-        long=pd.DataFrame(gdf.loc[:,('geo_unit_highres','geo_unit')])
-        long.loc[long['geo_unit_highres'].isin(sub['geocode']),'geo_unit']=long.loc[long['geo_unit_highres'].isin(sub['geocode']),'geo_unit_highres']
-
-        iris_dict2=iris_dict.drop(columns='DCOMIRIS').set_index('geocode').T.to_dict('records')[0]
-
-        long2=long.copy()
-        long2['geo_unit_highres2']=long2['geo_unit_highres'].astype('string').str.zfill(6).map(iris_dict2)
-        long2['geo_unit_highres2']=long2['geo_unit_highres2'].fillna(long2['geo_unit'])
-        long2.drop(columns='geo_unit',inplace=True)
-
-        geo_dict=long2.set_index('geo_unit_highres').T.to_dict('records')[0]
-        long2['geo_unit_highres2']=long2['geo_unit_highres2'].astype('string')
-
-        long2.sort_values(by='geo_unit_highres2',inplace=True)
-        
-        # check that we have the right geocodes in the dict
-        if (all(long2['geo_unit_highres2'].drop_duplicates().values==gdf_mixed['geocode'].values)):
-            print('dictionary is correct')
-
-        # if 'point_code2' in locals(): # only if we had to replace points with their containing geometries
-        #     # create the point_code dictionary
-        #     #point_code2['geo_unit_highres']=point_code2['geo_unit_highres'].astype('str').map(lambda x: x.replace('.','').replace(' ',''))
-        #     pc_dict2=point_code2.set_index('geo_unit_highres').T.to_dict('records')[0]
-            
-        #     long2=long.copy()
-        #     long2.loc[long2['geo_unit_highres'].isin(point_code2['geo_unit_highres']),'geo_unit']=long2.loc[long2['geo_unit_highres'].isin(point_code2['geo_unit_highres']),'geo_unit_highres'].map(pc_dict2).values
-        #     geo_dict_all=long2.set_index('geo_unit_highres').T.to_dict('records')[0]
-        #     # save dictionary
-        #     with open('../dictionaries/' + city + '_allpoly_geocode.pkl', 'wb') as f:
-        #         pickle.dump(geo_dict_all, f)
 
         # save a figure of the mixed resolution geounits
         cmap = mpl.colors.ListedColormap(['#1f77b4', 'red'])
         fig, ax = plt.subplots(figsize=(10,10))
-        gdf_mixed.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
+        gdf_mix.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
         plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
         ax.add_artist(ScaleBar(1)) 
         plt.savefig('../outputs/density_geounits/'+ city + '_mixed.png',facecolor='w')
@@ -788,18 +761,21 @@ def french_density_shapefiles(city,size_thresh):
 
         # save geodataframes and dictionary
         # save the shapefiles of population by aggregated sector
-        gdf_low=gdf2.loc[:,('geo_unit','geometry','area','Population','Density')]
+        gdf_low=gdf_lo.copy()
+        gdf_low.rename(columns={'area_lores':'area'},inplace=True)
+        gdf_low=gdf_low.loc[:,('geo_unit','geometry','area','Population','Density')]
         gdf_low[['Population','Density']]=round(gdf_low.loc[:,('Population','Density')])
         gdf_low.sort_values(by='geo_unit',inplace=True)
         gdf_low.to_csv('../outputs/density_geounits/' + city + '_pop_density_lowres.csv',index=False)
-        #  save the shapefiles of population by mix high-res and aggregated sector
-        gdf_hi=gdfj.loc[:,('geo_unit_highres','geometry','area','Density_2012','Density_2017')]
-        
-        # new mixres density file
-        gdf_mixed.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres.csv',index=False)
 
+        #  save the shapefiles of population by mix high-res and aggregated sector
+        gdf_hi.rename(columns={'area_hires':'area'},inplace=True)
+        gdf_hi=gdf_hi.loc[:,('geo_unit_highres','geometry','area','Population','Density')]
         gdf_hi.sort_values(by='geo_unit_highres',inplace=True)
         gdf_hi.to_csv('../outputs/density_geounits/' + city + '_pop_density_highres.csv',index=False)
+        
+        # save mixres density file
+        gdf_mix.to_csv('../outputs/density_geounits/' + city + '_pop_density_mixres.csv',index=False)
 
         # create and save the city boundary
         boundary=gpd.GeoDataFrame(geometry=[gdf_low['geometry'].unary_union], crs=crs0)
@@ -815,7 +791,7 @@ def french_density_shapefiles(city,size_thresh):
 
         # create and save some summary stats
 
-        area_mixed=pd.DataFrame(gdf_mixed['area'].describe()).reset_index()
+        area_mixed=pd.DataFrame(gdf_mix['area'].describe()).reset_index()
         area_hires=pd.DataFrame(gdf_hi['area'].describe()).reset_index()
         area_lores=pd.DataFrame(gdf_low['area'].describe()).reset_index()
         sums=pd.DataFrame(gdf_low[['area','Population']].sum()).reset_index()
@@ -835,5 +811,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Paris'])
+cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid
