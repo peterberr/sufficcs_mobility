@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,-0.227,0.768,37,-0.03421539811278462,-0.5775386768025812,Frankfurt am Main
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,-0.514,1.501,37,-0.07318717802247043,-0.1768351343900656,Frankfurt am Main

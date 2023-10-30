@@ -20,7 +20,7 @@ from datetime import datetime
 
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
-
+cities_small=['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse']
 def dist_agg(city):
     country=countries[cities_all.index(city)]
     print(city, country)
@@ -111,6 +111,14 @@ def dist_agg(city):
 
     df_agg.sort_values(by='Res_geocode',inplace=True)
     df_agg.dropna(subset=['Trip_Distance'],inplace=True)
+    df_agg=df_agg.loc[df_agg['UrbBuildDensity_res']<1e8,:]
+    if city=='Wien':
+           df_agg=df_agg.loc[:,['Res_geocode', 'DistCenter_res','UrbPopDensity_res','Commute_Trip','Trip_Distance','count']]
+    elif city in cities_small:
+           df_agg=df_agg.loc[:,['Res_geocode', 'DistCenter_res','UrbPopDensity_res','Commute_Trip','LU_UrbFab_res','DistSubcenter_res','Trip_Distance','count']]
+    else:
+           df_agg=df_agg.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res','UrbPopDensity_res',
+                                'UrbBuildDensity_res','IntersecDensity_res',  'LU_UrbFab_res','Commute_Trip','Age','Trip_Distance','count']]
 
     target='Trip_Distance'
 
@@ -118,9 +126,9 @@ def dist_agg(city):
     y=df_agg['Trip_Distance']
     # for German cities with very small N postcodes, define a smaller number of splits for cross validation
     if city in ['Potsdam','Magdeburg','Kassel']:
-        cv = RepeatedKFold(n_splits=3,n_repeats=10,random_state=2)
+        cv = RepeatedKFold(n_splits=2,n_repeats=8,random_state=1)
     else:
-        cv = RepeatedKFold(n_splits=5,n_repeats=10,random_state=2)
+        cv = RepeatedKFold(n_splits=5,n_repeats=10,random_state=1)
     
     # Define the parameter space to be considered
     PS = {"learning_rate": [0.01, 0.05,0.1,0.2], 
@@ -169,7 +177,12 @@ def dist_agg(city):
     r2ml=[]
     r2lr=[]
 
-    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age" # + bike_lane_share_res
+    #form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age" 
+    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + LU_UrbFab_res  + Commute_Trip + Age" 
+    if city=='Wien':
+           form_str="Trip_Distance ~  DistCenter_res + UrbPopDensity_res + Commute_Trip" 
+    if city in cities_small:
+           form_str="Trip_Distance ~  DistCenter_res + UrbPopDensity_res + Commute_Trip + LU_UrbFab_res + DistSubcenter_res" 
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_LR/'  + city + '.xlsx', engine='openpyxl')
     for train_idx, test_idx in cv.split(X): # select here 
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -262,7 +275,8 @@ def dist_agg(city):
     importance_df.columns = ['column_name', 'shap_importance']
     importance_df = importance_df.sort_values('shap_importance', ascending=False)
 
-    n=importance_df[:10].index
+    #n=importance_df[:10].index
+    n=importance_df[:8].index
 
     X.sort_index(inplace=True)
     data=X.sort_index().iloc[:,n]
@@ -281,8 +295,8 @@ def dist_agg(city):
             y0.append(dftemp['v0'].values)
 
     fig = plt.figure(figsize=(12,15))
-
-    for i in range(0,8):
+    #nn=importance_df[:8].index    
+    for i in range(0,len(importance_df)):
             ax1 = fig.add_subplot(421+i)
             xs=data.iloc[:,i]
             ys=values.iloc[:,i]
@@ -292,7 +306,8 @@ def dist_agg(city):
             xlab=data.columns[i]
 
             #ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
-            ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
+            #ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
+            ax1.scatter(xs,ys,alpha=0.9,s=8)
             plt.plot(x,y1,'k:',label='zero')
             #plt.plot(x,y2,'k',label='mean')
             plt.legend(loc="upper left",prop={'size':12})
@@ -313,18 +328,19 @@ def dist_agg(city):
     plt.suptitle("SHAP values for most important UF features, " + city,y=0.92,size=16)
     plt.savefig('../outputs/ML_Results/result_figures/dist_agg/' + city + '_main.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
-
+    main6=6    
     if city == 'Berlin': let='a'
     if city == 'Paris': let='b'
     if city == 'Madrid': let='c'
-    if city == 'Wien': let='d'
+    if city == 'Wien': let='d'; main6=3
     if city == 'Germany_other': let='e'
     if city == 'France_other': let='f'
     if city == 'All': let='g'
+    if city in cities_small: let='0'; main6=5
     else: let='0'
 
     fig = plt.figure(figsize=(11,12))
-    for i in range(0,6):
+    for i in range(0,main6):
             ax1 = fig.add_subplot(321+i)
             xs=data.iloc[:,i]
             ys=values.iloc[:,i]
@@ -334,7 +350,7 @@ def dist_agg(city):
             xlab=data.columns[i]
 
             #ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
-            ax1.scatter(xs+np.random.normal(0, 0.05, len(data)),ys,alpha=0.9,s=8)
+            ax1.scatter(xs,ys,alpha=0.9,s=8)
             plt.plot(x,y1,'k:',label='zero')
 
             #plt.legend(loc="upper left",prop={'size':12})
@@ -369,6 +385,7 @@ def dist_agg(city):
             pickle.dump(df_agg, h)
 
 
-cities=pd.Series(['Berlin'])
+cities=pd.Series(['France_other'])
+#cities=pd.Series(['Montpellier','Nantes','Nimes','Toulouse'])
 #cities=pd.Series(cities_all)
 cities.apply(dist_agg)

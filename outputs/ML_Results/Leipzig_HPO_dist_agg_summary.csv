@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.2,4,100,0.546,0.343,34,0.6287483590035905,-1.2796617235995726,Leipzig
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.305,0.363,34,0.40454698206872475,0.35187280012670163,Leipzig

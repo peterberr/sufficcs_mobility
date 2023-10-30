@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.01,2,300,0.167,0.261,63,0.25196846332011835,0.30869415255346144,Clermont
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.01,2,200,-0.155,0.521,56,-0.013591598827029205,0.1896994227966705,Clermont

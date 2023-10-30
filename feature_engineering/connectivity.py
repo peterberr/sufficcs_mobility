@@ -298,7 +298,7 @@ def conn(city):
     op2=network_plz(city_poly,metrics=metrics,nw_type='drive',op=op)
 
     op2.to_csv('../outputs/Connectivity/connectivity_stats_' + city + '.csv',index=False)
-
-cities=pd.Series(cities_all)
+cities=pd.Series(['Nantes','Toulouse','Montpellier'])
+#cities=pd.Series(cities_all)
 
 cities.apply(conn) 

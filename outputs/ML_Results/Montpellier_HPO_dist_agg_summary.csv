@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,3,100,0.584,0.181,83,0.6022984655255059,0.6359310739637574,Montpellier
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.1,2,300,0.71,0.163,85,0.740860828780145,0.7902832818956576,Montpellier

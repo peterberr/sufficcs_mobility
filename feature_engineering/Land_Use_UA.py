@@ -175,5 +175,6 @@ def land_use_ua(city):
     lu_poly.to_csv('../outputs/LU/UA_'+city+'.csv',index=False)
     print('Finished with ' + city)
 
-cities=pd.Series(cities_all)
+#cities=pd.Series(cities_all)
+cities=pd.Series(['Nantes','Toulouse','Montpellier'])
 cities.apply(land_use_ua) 

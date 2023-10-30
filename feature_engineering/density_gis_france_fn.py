@@ -697,7 +697,8 @@ def french_density_shapefiles(city,size_thresh):
         # finally create the mixed res gdf
         gdf_mix=gdf_lo.loc[~gdf_lo['geo_unit'].isin(large),('geo_unit','geometry','area_lores','Population','Density')]
         gdf_mix.rename(columns={'geo_unit':'geocode','area_lores':'area'},inplace=True)
-        gdf_mix['geocode']=gdf_mix['geocode'].astype(int).astype(str)
+        #gdf_mix['geocode']=gdf_mix['geocode'].astype(int).astype(str)
+        gdf_mix['geocode']=gdf_mix['geocode'].astype(str)
         gdf_mix['source']='large_units'
         sub_diss['source']='small_units_agg'
         gdf_mix=gpd.GeoDataFrame(pd.concat([gdf_mix,sub_diss], ignore_index=True))
@@ -811,5 +812,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse'])
+cities=pd.Series(['Nimes','Toulouse'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid

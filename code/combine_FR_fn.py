@@ -386,6 +386,10 @@ def combine_survey_data(city):
 
     # transit access
     transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+    # solve issue with definition of some Nimes geocodes, which miss some leading zeros
+    if city == 'Nimes':
+        transit.loc[~transit['geocode'].isin(list(code_dict.values())),'geocode']=transit.loc[~transit['geocode'].isin(list(code_dict.values())),'geocode'].str.zfill(6)
+
 
     # now merge all urban form features with the survey data.
     # population density origin
@@ -460,7 +464,7 @@ def combine_survey_data(city):
     # sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
 
     # transit stats, res
-    sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
+    sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode',how='left').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 
@@ -877,7 +881,7 @@ def combine_survey_data(city):
     fig.suptitle("Trip Mode by Purpose & Distance, " + city, fontsize=22,y=0.95)
     fig.savefig('../figures/bars/'+ city+'_ModePurposeDistance.png',facecolor='w',bbox_inches='tight')
 
-cities=pd.Series(['Dijon','Lille','Lyon','Montpellier','Nantes','Nimes'])
-#cities=pd.Series(['Clermont','Toulouse'])
+cities=pd.Series(['Montpellier','Nantes','Nimes','Toulouse'])
+#cities=pd.Series([,])
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
 inc_stats_all.to_csv('../figures/plots/income_stats_FR.csv',index=False)
