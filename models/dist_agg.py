@@ -107,11 +107,12 @@ def dist_agg(city):
     df_UF=df_UF.merge(count)
     df_UF=df_UF.loc[df_UF['count']>4,]
     df_agg=df_UF.copy()
-    N=len(df_UF)
+    
 
     df_agg.sort_values(by='Res_geocode',inplace=True)
     df_agg.dropna(subset=['Trip_Distance'],inplace=True)
-    df_agg=df_agg.loc[df_agg['UrbBuildDensity_res']<1e8,:]
+    if city in ['Leipzig','Germany_other']:
+           df_agg=df_agg.loc[df_agg['UrbBuildDensity_res']<1e8,:]
     if city=='Wien':
            df_agg=df_agg.loc[:,['Res_geocode', 'DistCenter_res','UrbPopDensity_res','Commute_Trip','Trip_Distance','count']]
     elif city in cities_small:
@@ -124,6 +125,7 @@ def dist_agg(city):
 
     X=df_agg.drop(columns=['Res_geocode','count',target])
     y=df_agg['Trip_Distance']
+    N=len(df_agg)
     # for German cities with very small N postcodes, define a smaller number of splits for cross validation
     if city in ['Potsdam','Magdeburg','Kassel']:
         cv = RepeatedKFold(n_splits=2,n_repeats=8,random_state=1)
@@ -385,7 +387,7 @@ def dist_agg(city):
             pickle.dump(df_agg, h)
 
 
-cities=pd.Series(['France_other'])
-#cities=pd.Series(['Montpellier','Nantes','Nimes','Toulouse'])
+cities=pd.Series(['Leipzig','Germany_other'])
+#cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other'])
 #cities=pd.Series(cities_all)
 cities.apply(dist_agg)

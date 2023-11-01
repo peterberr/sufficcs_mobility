@@ -176,5 +176,5 @@ def land_use_ua(city):
     print('Finished with ' + city)
 
 #cities=pd.Series(cities_all)
-cities=pd.Series(['Nantes','Toulouse','Montpellier'])
+cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Nimes'])
 cities.apply(land_use_ua) 

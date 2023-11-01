@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,200,1727,0.5464044409443507,0.5283187047849534,All
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,4,200,1754,0.5401450588770449,0.5255140481901122,All

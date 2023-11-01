@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.474,0.175,160,0.44443996071046565,0.4210538122430333,Lyon
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,100,0.474,0.175,160,0.431996481768268,0.42988311122709166,Lyon

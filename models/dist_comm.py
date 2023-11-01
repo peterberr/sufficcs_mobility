@@ -379,7 +379,7 @@ def dist_commute(city):
     with open('../outputs/ML_Results/shap/dist_commute/' + city + '_importance.pkl', 'wb') as g:
             pickle.dump(importance_df, g)
 
-    with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
+    with open('../outputs/ML_Results/shap/dist_commute/' + city + '_df.pkl', 'wb') as h:
         pickle.dump(df, h)
 
 cities=pd.Series(cities_all)
