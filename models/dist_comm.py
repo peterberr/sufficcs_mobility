@@ -382,6 +382,6 @@ def dist_commute(city):
     with open('../outputs/ML_Results/shap/dist_agg/' + city + '_df.pkl', 'wb') as h:
         pickle.dump(df, h)
 
-#cities=pd.Series(cities_all)
-cities=pd.Series(['Berlin'])
+cities=pd.Series(cities_all)
+#cities=pd.Series(['Berlin'])
 cities.apply(dist_commute)
