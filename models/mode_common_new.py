@@ -327,6 +327,9 @@ def mode_model(city):
 
     with open('../outputs/ML_Results/shap/mode_common_new/' + city + '_importance.pkl', 'wb') as g:
         pickle.dump(importance_df, g)
+
+    with open('../outputs/ML_Results/shap/mode_common_new/' + city + '_df.pkl', 'wb') as g:
+        pickle.dump(df, g)
     
     # shap_mode = shap_disp(shap_valueslist,X.sort_index(), 'Mode Choice ', city)
 
@@ -428,7 +431,7 @@ def mode_model(city):
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common_new/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-cities_list=pd.Series(['Madrid']) 
+cities_list=pd.Series(['Wien']) 
 #cities_list=pd.Series(cities_all) 
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

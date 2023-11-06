@@ -35,6 +35,7 @@ def dens_DE(city):
         gdf.drop(columns=['sst','sst_klar','historie','shape','aend'],inplace=True)
         gdf.to_crs(3035,inplace=True)
 
+        # population data from https://www.dresden.de/de/leben/stadtportrait/statistik/demografiemonitor/Demografiemedien/atlas.html
         fp='../../MSCA_data/Germany_population_new/Dresden/Dresden_pop_stadtteile.csv'
         pop_st=pd.read_csv(fp,encoding='latin-1')
         pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
@@ -49,6 +50,7 @@ def dens_DE(city):
         gdf=gpd.read_file(fp)
         gdf.to_crs(3035,inplace=True)
 
+        # pop data source https://opendata.leipzig.de/dataset/einwohner-jahreszahlen-kleinraumig/resource/624a34ca-df67-4375-85ef-cefcd4cc0168
         fp='../../MSCA_data/Germany_population_new/Leipzig/Bevölkerungsbestand_Einwohner.csv'
         pop_st=pd.read_csv(fp,encoding='utf-8')
         pop_st=pop_st.loc[pop_st['Sachmerkmal']=='Einwohner insgesamt',:]
@@ -63,6 +65,7 @@ def dens_DE(city):
             gdf.to_crs(crs0,inplace=True)
 
             # load population data for stadteile (or other spatial unit) 
+            # source https://statistikportal.frankfurt.de/strukturdatenatlas/stadtteile/html/atlas.html
             fp='../../MSCA_data/Germany_population_new/Frankfurt am Main/Stadtteile_pop.csv'
             pop_st=pd.read_csv(fp,encoding='latin-1')
             pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
@@ -78,6 +81,7 @@ def dens_DE(city):
         gdf.to_crs(crs0,inplace=True)
 
         # load population data for stadteile (or other spatial unit) 
+        # source https://www.duesseldorf.de/fileadmin/Amt12/statistik/stadtforschung/download/05_bevoelkerung/SD_2019_Kap_5.pdf
         fp='../../MSCA_data/Germany_population_new/Düsseldorf/pop_2011_2018_st.csv'
         pop_st=pd.read_csv(fp,encoding='latin-1')
         pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
@@ -99,6 +103,7 @@ def dens_DE(city):
         gdf.drop(columns=['DGN_LEVEL','SBZ_Nummer'],inplace=True)
 
         # load population data for stadteile (or other spatial unit) 
+        # source https://statistik.magdeburg.de/KISS-MD/, https://www.magdeburg.de/PDF/Bev%C3%B6lkerung_Demografie_2019_Heft_104.PDF?ObjSvrID=37&ObjID=38422&ObjLa=1&Ext=PDF&WTR=1&_ts=1602221783
         fp='../../MSCA_data/Germany_population_new/Magdeburg/Pop_2018_2011.csv'
         pop_st=pd.read_csv(fp,encoding='latin-1')
         pop_st['Gebiet_NR']=pop_st['Gebiet_NR'].astype(str).str.zfill(2)
@@ -114,6 +119,7 @@ def dens_DE(city):
         gdf.drop(columns=['OBJECTID','pitID','pitID','pitClass','pitValue'],inplace=True)
 
         # load population data for stadteile (or other spatial unit) 
+        # sources https://www.kassel.de/statistik/berichte/archiv/Jahresbericht_2014.pdf, https://www.kassel.de/statistik/berichte/archiv/Jahresbericht_2018.pdf
         fp='../../MSCA_data/Germany_population_new/Kassel/pop_st.csv'
         pop_st=pd.read_csv(fp,encoding='latin-1')
         pop_st['2018_2011']=pop_st['2018']/pop_st['2011']
@@ -132,7 +138,7 @@ def dens_DE(city):
         gdf.to_crs(crs0,inplace=True)
 
         # load population data for stadteile (or other spatial unit) 
-        fp='../../MSCA_data/Germany_population_new/Potsdam/Potsdam_pop_st_2017.csv'
+        fp='../../MSCA_data/Germany_population_new/Potsdam/Potsdam_pop_st_2017_2018.csv'
         pop_st=pd.read_csv(fp,encoding='latin-1')
         pop_st['Stadtteil']=pop_st['Stadtteil'].astype(str)
 
@@ -178,7 +184,7 @@ def dens_DE(city):
 
     # load in geodataframe of city postcode geometries
     city_plz=DE_plz[city]
-    fp='../../sufficcs_mobility/source/GTFS/postcodes_gpkg/'+city+'_postcodes'+'.gpkg'
+    fp='../../sufficcs_mobility/source/GTFS/postcodes_gpkg_all/'+city+'_postcodes'+'.gpkg'
     gdf_plz=gpd.read_file(fp)
     gdf_plz.to_crs(3035,inplace=True)
     gdf_plz['geocode']=gdf_plz['geocode'].astype(str).str.zfill(5)
@@ -202,7 +208,7 @@ def dens_DE(city):
     summ=gdf_plz.loc[:,['Area','Pop_2018']].sum().reset_index()
     summ=pd.concat([summ,pd.DataFrame([{'index':'density',0:summ.iloc[1,1]/summ.iloc[0,1]}])])
     summ.rename(columns={'index':'variable',0:'value'},inplace=True)
-    # summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
+    #summ.to_csv('../outputs/density_geounits/summary_stats_'+city+'.csv',index=False)
 
     area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
     writer = pd.ExcelWriter('../outputs/density_geounits/summary_stats_' + city + '.xlsx', engine='openpyxl')
@@ -221,7 +227,7 @@ city='Berlin'
 print(city)
 # load in geodataframe of city postcode geometries
 city_plz=DE_plz[city]
-fp='../../sufficcs_mobility/source/GTFS/postcodes_gpkg/'+city+'_postcodes'+'.gpkg'
+fp='../../sufficcs_mobility/source/GTFS/postcodes_gpkg_all/'+city+'_postcodes'+'.gpkg'
 gdf_plz=gpd.read_file(fp)
 gdf_plz.to_crs(3035,inplace=True)
 gdf_plz['geocode']=gdf_plz['geocode'].astype(str).str.zfill(5)
@@ -253,5 +259,5 @@ summ.to_excel(writer, sheet_name='area_pop_sum',index=False)
 writer.save()
 writer.close()
 
-# area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
-# area_lores.to_csv('../outputs/density_geounits/areadist_'+city+'.csv',index=False)
+area_lores=pd.DataFrame(gdf_plz['Area'].describe()).reset_index()
+area_lores.to_csv('../outputs/density_geounits/areadist_'+city+'.csv',index=False)

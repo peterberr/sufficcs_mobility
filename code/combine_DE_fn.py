@@ -723,7 +723,7 @@ def combine_survey_data(city):
     # print('Average speed by mode and distance category: ' + city)
     # print(round(sHPW.dropna(axis=0,subset='Trip_Speed').groupby(['Trip_Distance_Cat','Mode'])['Trip_Speed'].mean(),2))
 
-cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
-#cities=pd.Series(['Düsseldorf']) # currently only cities with complete UF data
+#cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
+cities=pd.Series(['Potsdam']) #
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
-inc_stats_all.to_csv('../figures/plots/income_stats_DE.csv',index=False)
+#inc_stats_all.to_csv('../figures/plots/income_stats_DE.csv',index=False)
