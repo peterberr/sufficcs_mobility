@@ -20,7 +20,7 @@ from datetime import datetime
 
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
-cities_small=['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse']
+cities_small=['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other','Germany_other']
 def dist_agg(city):
     country=countries[cities_all.index(city)]
     print(city, country)
@@ -113,13 +113,23 @@ def dist_agg(city):
     df_agg.dropna(subset=['Trip_Distance'],inplace=True)
     if city in ['Leipzig','Germany_other']:
            df_agg=df_agg.loc[df_agg['UrbBuildDensity_res']<1e8,:]
+
+    # here is a new section on variable selection       
     if city=='Wien':
-           df_agg=df_agg.loc[:,['Res_geocode', 'DistCenter_res','UrbPopDensity_res','Commute_Trip','Trip_Distance','count']]
+           df_agg.drop(columns=['DistSubcenter_res','UrbBuildDensity_res','IntersecDensity_res','LU_UrbFab_res','street_length_res','LU_Comm_res','Age'],inplace=True)
+           form_str="Trip_Distance ~ DistCenter_res + UrbPopDensity_res + Commute_Trip" 
+    elif city in ['Berlin','Paris']:
+           df_agg.drop(columns=['UrbBuildDensity_res'],inplace=True)
+           form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age" 
     elif city in cities_small:
-           df_agg=df_agg.loc[:,['Res_geocode', 'DistCenter_res','UrbPopDensity_res','Commute_Trip','LU_UrbFab_res','DistSubcenter_res','Trip_Distance','count']]
+           if country=='France':
+                df_agg.drop(columns=['IntersecDensity_res'],inplace=True)
+                form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age"   
+           if country=='Germany':
+                df_agg.drop(columns=['IntersecDensity_res','LU_UrbFab_res'],inplace=True)
+                form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res + street_length_res + LU_Comm_res  + Commute_Trip + Age"             
     else:
-           df_agg=df_agg.loc[:,['Res_geocode', 'DistSubcenter_res', 'DistCenter_res','UrbPopDensity_res',
-                                'UrbBuildDensity_res','IntersecDensity_res',  'LU_UrbFab_res','Commute_Trip','Age','Trip_Distance','count']]
+           form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age" 
 
     target='Trip_Distance'
 
@@ -180,11 +190,14 @@ def dist_agg(city):
     r2lr=[]
 
     #form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + street_length_res + LU_Comm_res + LU_UrbFab_res  + Commute_Trip + Age" 
-    form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res  + IntersecDensity_res + LU_UrbFab_res  + Commute_Trip + Age" 
-    if city=='Wien':
-           form_str="Trip_Distance ~  DistCenter_res + UrbPopDensity_res + Commute_Trip" 
-    if city in cities_small:
-           form_str="Trip_Distance ~  DistCenter_res + UrbPopDensity_res + Commute_Trip + LU_UrbFab_res + DistSubcenter_res" 
+    #form_str="Trip_Distance ~ DistSubcenter_res + DistCenter_res + UrbPopDensity_res + UrbBuildDensity_res + IntersecDensity_res + LU_UrbFab_res  + Commute_Trip + Age" 
+    # form_str="Trip_Distance ~ DistCenter_res +  UrbPopDensity_res + Commute_Trip + LU_UrbFab_res + DistSubcenter_res + IntersecDensity_res + UrbBuildDensity_res + Age"
+#     if city=='Wien':
+#            form_str="Trip_Distance ~  DistCenter_res + UrbPopDensity_res + Commute_Trip" 
+#     if city in cities_small:
+#            form_str="Trip_Distance ~  DistCenter_res + UrbPopDensity_res + Commute_Trip + LU_UrbFab_res + DistSubcenter_res + UrbBuildDensity_res" 
+#     if city in ['Berlin','Paris']:
+#            form_str="Trip_Distance ~ DistCenter_res +  UrbPopDensity_res + Commute_Trip + LU_UrbFab_res + DistSubcenter_res + IntersecDensity_res + Age" 
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_LR/'  + city + '.xlsx', engine='openpyxl')
     for train_idx, test_idx in cv.split(X): # select here 
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -298,7 +311,7 @@ def dist_agg(city):
 
     fig = plt.figure(figsize=(12,15))
     #nn=importance_df[:8].index    
-    for i in range(0,len(importance_df)):
+    for i in range(0,len(n)):
             ax1 = fig.add_subplot(421+i)
             xs=data.iloc[:,i]
             ys=values.iloc[:,i]
@@ -331,6 +344,8 @@ def dist_agg(city):
     plt.savefig('../outputs/ML_Results/result_figures/dist_agg/' + city + '_main.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close()
     main6=6    
+    let='0'
+    if city in cities_small: main6=6
     if city == 'Berlin': let='a'
     if city == 'Paris': let='b'
     if city == 'Madrid': let='c'
@@ -338,8 +353,12 @@ def dist_agg(city):
     if city == 'Germany_other': let='e'
     if city == 'France_other': let='f'
     if city == 'All': let='g'
-    if city in cities_small: let='0'; main6=5
-    else: let='0'
+    
+
+    data.rename(columns={'DistCenter_res':'Dist. to city center','UrbBuildDensity_res':'Built-up density','IntersecDensity_res':'Intersection density',
+                     'LU_Comm_res':'Commercial area','LU_UrbFab_res':'Urban Fabric area','LU_Road_res':'Road area','street_length_res':'Avg. street length',
+                     'UrbPopDensity_res':'Population density','DistSubcenter_res':'Dist. to subcenter','transit_accessibility':'Transit accessibility',
+                     'Commute_Trip':'Commute trip share','bike_lane_share_res':'Cycle lane share'},inplace=True)
 
     fig = plt.figure(figsize=(11,12))
     for i in range(0,main6):
@@ -387,7 +406,7 @@ def dist_agg(city):
             pickle.dump(df_agg, h)
 
 
-cities=pd.Series(['Leipzig','Germany_other'])
+cities=pd.Series(['Germany_other'])
 #cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other'])
 #cities=pd.Series(cities_all)
 cities.apply(dist_agg)

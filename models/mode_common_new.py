@@ -16,7 +16,9 @@ import pickle
 
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
-form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education  + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_IntersecDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res" # FeatureM_CarAvailable replaced by FeatureM_CarOwnershipHH
+cities_small=['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other','Germany_other']
+
+#form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education  + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_IntersecDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res" # FeatureM_CarAvailable replaced by FeatureM_CarOwnershipHH
 
 def mode_model(city):
     country=countries[cities_all.index(city)]
@@ -122,7 +124,7 @@ def mode_model(city):
         'UrbPopDensity_res', 'DistSubcenter_res', 'DistCenter_res','UrbBuildDensity_res',
         'IntersecDensity_res', 'street_length_res', 'bike_lane_share_res','transit_accessibility_res',
         'LU_UrbFab_res','LU_Comm_res',    # urban form features, land-use features are now all from UA. removed 'LU_Road_res', 'LU_Road_dest', 'LU_Urban_res','LU_Urban_dest', 
-        # target: Trip_Distance
+        # target: Mode
         'Mode')
         ]
 
@@ -136,6 +138,19 @@ def mode_model(city):
     df.drop(columns='Mode',inplace=True)
 
     df.loc[df['Education'].isin(['Secondary+BAC','Secondary+Matura']),'Education']='Secondary'
+
+    # here is a new section on variable selection       
+    if city=='Wien':
+           df.drop(columns=['IntersecDensity_res','LU_UrbFab_res','UrbBuildDensity_res','transit_accessibility_res'],inplace=True)
+           form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation + FeatureM_Education + FeatureM_UrbPopDensity_res + FeatureM_DistSubcenter_res + FeatureM_DistCenter_res + FeatureM_street_length_res + FeatureM_bike_lane_share_res + FeatureM_LU_Comm_res" 
+    elif city in ['Berlin','Paris']:
+           df.drop(columns=['UrbBuildDensity_res'],inplace=True)
+           form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation + FeatureM_Education + FeatureM_UrbPopDensity_res + FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_IntersecDensity_res + FeatureM_street_length_res +FeatureM_bike_lane_share_res + FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res"       
+    elif city in cities_small:
+           df.drop(columns=['IntersecDensity_res'],inplace=True)
+           form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res"     
+    else:
+         form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_IntersecDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res" 
 
     # identify the feature columns
     N_non_feature=6 # how many non-features are at the start of the df
@@ -155,6 +170,7 @@ def mode_model(city):
         # remove the original categorical columns
     df.drop(df_Cat.columns.tolist(),axis=1,inplace=True)
     # HPO with full dataset, grouping by individual person
+
     target = 'Mode_num'
     N=len(df)
 
@@ -176,7 +192,7 @@ def mode_model(city):
     groups=gr
     gkf = list(GroupKFold(n_splits=9).split(X,y,groups)) # i found somewhere online that i had to define the cv splitter as a list, can't find the source at the moment.
 
-    fp='../outputs/ML_Results/'+city+'_HPO_mode_common_summary.csv'
+    fp='../outputs/ML_Results/'+city+'_HPO_mode_common_new_summary.csv'
     if os.path.isfile(fp):
         print('HPs already identified')
         HPO_summary=pd.read_csv(fp)
@@ -286,7 +302,6 @@ def mode_model(city):
 
             st_list_fold=[summ_table.drop(columns='param').to_numpy()]
             summ_table_list.append(st_list_fold)
-            #summ_table.head()
 
             summ_table.to_excel(writer, sheet_name='summ' + id,index=False)
         except: 
@@ -330,8 +345,6 @@ def mode_model(city):
 
     with open('../outputs/ML_Results/shap/mode_common_new/' + city + '_df.pkl', 'wb') as g:
         pickle.dump(df, g)
-    
-    # shap_mode = shap_disp(shap_valueslist,X.sort_index(), 'Mode Choice ', city)
 
     # save shap_values, to enable later re-creation and editing of shap plots
     with open('../outputs/ML_Results/shap/mode_common_new/' + city + '.pkl', 'wb') as f:
@@ -358,7 +371,7 @@ def mode_model(city):
         'Season_Winter':'Winter season','MeanTime2Transit_res':'Time to transit', #'diff':'Elevation_diff',
         'Trip_Distance':'Trip distance','CarOwnershipHH':'Car ownership','Occupation_Student_School':'School Student',
         'Age':'Age','Sex':'Sex','HHSize':'Household size','IncomeDescriptiveNumeric':'Income','IncomeDetailed_Numeric':'Income',
-        'Education_University':'University education', 'Occupation_Employed_FullTime':'Employed'}
+        'Education_University':'University education','Education_Apprenticeship':'Apprenticeship education', 'Occupation_Employed_FullTime':'Employed'}
 
     X_lab=[*map(col_dict.get, X_disp)]
 
@@ -432,6 +445,8 @@ def mode_model(city):
         plt.savefig('../outputs/ML_Results/result_figures/mode_common_new/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
 cities_list=pd.Series(['Wien']) 
-#cities_list=pd.Series(cities_all) 
+#cities_list=pd.Series(cities_all)
+#cities_list=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other'])
+
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

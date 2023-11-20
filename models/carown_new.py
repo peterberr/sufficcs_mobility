@@ -78,7 +78,20 @@ def carown_model(city):
     # remove high building density outliers (For Leipzig)
     df=df.loc[df['UrbBuildDensity']<1e8,]   
     df=df.loc[df['maxAgeHH']>0,]  
+    df.drop(columns='HHType_simp',inplace=True)
     df.dropna(inplace=True)
+
+    if city in ['Berlin','Paris']:
+        df.drop(columns=['UrbBuildDensity'],inplace=True)
+        form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_street_length +  FeatureO_LU_UrbFab +  FeatureO_LU_Comm + FeatureO_transit_accessibility"
+    elif city in ['France_other']:
+           df.drop(columns=['UrbBuildDensity','transit_accessibility','IntersecDensity'],inplace=True)
+           form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share +  FeatureO_street_length +  FeatureO_LU_UrbFab +  FeatureO_LU_Comm"
+    elif city =='Germany_other':
+        df.drop(columns=['LU_UrbFab'],inplace=True)
+        form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity +  FeatureO_UrbBuildDensity  + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_street_length +  FeatureO_LU_Comm + FeatureO_transit_accessibility"
+    else:
+        form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity +  FeatureO_UrbBuildDensity  + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_street_length  + FeatureO_LU_UrbFab + FeatureO_LU_Comm + FeatureO_transit_accessibility"
     
     # identify the feature columns
     N_non_feature=2 # how many non-features are at the start of the df
@@ -119,7 +132,7 @@ def carown_model(city):
     # if not already done!! #
     # if file '../ML_Results/' + city + '_HPO_carown_summary.csv' does not exist, run the HPO and create it. 
     # other wise pd.read_csv the file and extract variables ['LR','MD','N']
-    fp='../outputs/ML_Results/'+city+'_HPO_carown_summary.csv'
+    fp='../outputs/ML_Results/'+city+'_HPO_carown_new_summary.csv'
     if os.path.isfile(fp):
         print('HPs already identified')
         HPO_summary=pd.read_csv(fp)
@@ -163,7 +176,7 @@ def carown_model(city):
         n_estimators=n_parameter_all, 
         learning_rate=lr_parameter_all)
     
-    form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_HHType_simp + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity +  FeatureO_UrbBuildDensity  + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_street_length +  FeatureO_LU_UrbFab +  FeatureO_LU_Comm + FeatureO_transit_accessibility"
+    #form_str="CarOwnershipHH ~ FeatureO_HHSize + FeatureO_IncomeDetailed_Numeric + FeatureO_HHType_simp + FeatureO_maxAgeHH  + FeatureO_UniversityEducation + FeatureO_InEmployment + FeatureO_AllRetired + FeatureO_UrbPopDensity +  FeatureO_UrbBuildDensity  + FeatureO_DistSubcenter +  FeatureO_DistCenter + FeatureO_bike_lane_share + FeatureO_IntersecDensity +  FeatureO_street_length +  FeatureO_LU_UrbFab +  FeatureO_LU_Comm + FeatureO_transit_accessibility"
     writer = pd.ExcelWriter('../outputs/ML_Results/carown_LR_new/'  + city + '.xlsx', engine='openpyxl')
     for train_idx, test_idx in cv.split(X): # select here 
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -270,7 +283,7 @@ def carown_model(city):
                'UniversityEducation':'University education','AllRetired':'Retired','bike_lane_share':'Cycle lane share',
                'transit_accessibility':'Transit Accessibility',
        'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter',
-       'LU_Urban':'Urban share, land-use','LU_UrbFab':'Urban fabric share, land-use','LU_Comm':'Commercial share, land-use',
+       'LU_Urban':'Urban area','LU_UrbFab':'Urban fabric area','LU_Comm':'Commercial area',
        'IncomeDetailed_Numeric':'Income','HHSize':'Household size','maxAgeHH':'Max householder age','InEmployment':'Employed',
        'HHType_simp_Single_Female':'Single female household','HHType_simp_MultiAdult':'Multi-adult household','HHType_simp_MultiAdult_Kids':'Multi-adult household with kids'}
     X_lab=[*map(col_dict.get, X_disp)]
@@ -304,7 +317,7 @@ def carown_model(city):
     if city == 'France_other': citylab='France, other'
 
     lab_dict= {'DistCenter':'Dist. to city center (km)','IntersecDensity':'Instersection density','street_length':'Avg. street length','bike_lane_share':'Cycle lane share',
-       'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter','LU_Urban':'Urban share, land-use',
+       'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter','LU_Urban':'Urban area','LU_UrbFab':'Urban fabric area',
        'transit_accessibility':'Transit Accessibility','HHType_simp_Single_Female':'Single female household','UniversityEducation':'University education',
        'IncomeDetailed_Numeric':'Income','HHSize':'Household size','maxAgeHH':'Max householder age','InEmployment':'Employed'}
 
@@ -390,6 +403,6 @@ def carown_model(city):
     plt.close() 
 
 #cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
-cities=pd.Series(['Berlin'])
+cities=pd.Series(['France_other','Germany_other'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

@@ -70,7 +70,6 @@ def land_use_ua(city):
     'Port areas',
     'Construction sites',
     ]),'UrbanStatus']='Urban'
-    gdf['UrbanStatus'].value_counts()
 
     # Read in boundaries
     fp='../outputs/city_boundaries/' + city + '.csv'
@@ -79,102 +78,178 @@ def land_use_ua(city):
     if gdf.crs!=crs0:
         gdf=gdf.to_crs(crs0)
 
-    # read in postcodes gdf and isolate to specific city
-    if country=='Germany':
-        fp = "../shapefiles/plz-5stellig.shp/plz-5stellig.shp"
-        de_plz = gpd.read_file(fp)
-        de_plz=de_plz.to_crs(crs0)
-        plz_code=de_plz.plz
+    # # read in postcodes gdf and isolate to specific city
+    # if country=='Germany':
+    #     fp = "../shapefiles/plz-5stellig.shp/plz-5stellig.shp"
+    #     de_plz = gpd.read_file(fp)
+    #     de_plz=de_plz.to_crs(crs0)
+    #     plz_code=de_plz.plz
 
-        city_poly_fp='../dictionaries/city_postcode_DE.pkl'
-        a_file = open(city_poly_fp, "rb")
-        city_poly_dict = pickle.load(a_file)
+    #     city_poly_fp='../dictionaries/city_postcode_DE.pkl'
+    #     a_file = open(city_poly_fp, "rb")
+    #     city_poly_dict = pickle.load(a_file)
 
-        # if the de_plz codes are string and the city_poly_dict codes are int, then can use de_plz['geocode'].astype('int')
-        city_poly=de_plz.loc[(de_plz['plz'].isin(city_poly_dict[city]))]
+    #     # if the de_plz codes are string and the city_poly_dict codes are int, then can use de_plz['geocode'].astype('int')
+    #     city_poly=de_plz.loc[(de_plz['plz'].isin(city_poly_dict[city]))]
 
-        # change geocode label 
-        if 'plz' in city_poly.columns:
-            city_poly.rename(columns={'plz':'geocode'},inplace=True)
-    else:
-        if city == 'Paris':
-            fp = '../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
-            city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geo_unit')
-        elif city =='Wien':
-            fp = '../outputs/density_geounits/'+city+'_pop_density.csv'
-            city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
-        else:
-            fp = '../outputs/density_geounits/'+city+'_pop_density_mixres.csv'
-            city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
+    #     # change geocode label 
+    #     if 'plz' in city_poly.columns:
+    #         city_poly.rename(columns={'plz':'geocode'},inplace=True)
+    # else:
+    #     if city == 'Paris':
+    #         fp = '../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
+    #         city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geo_unit')
+    #     elif city =='Wien':
+    #         fp = '../outputs/density_geounits/'+city+'_pop_density.csv'
+    #         city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
+    #     else:
+    #         fp = '../outputs/density_geounits/'+city+'_pop_density_mixres.csv'
+    #         city_poly=import_csv_w_wkt_to_gdf(fp,crs0,gc='geocode')
+    #         fp2='../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
+    #         city_poly2=import_csv_w_wkt_to_gdf(fp2,crs0,gc='geocode')
     
-        city_poly.drop(columns='Density',inplace=True)
-        # change geocode label 
-        if 'geo_unit' in city_poly.columns: # for Paris at least
-            city_poly.rename(columns={'geo_unit':'geocode'},inplace=True)
-        city_poly['geocode']=city_poly['geocode'].astype('str')
+    #     city_poly.drop(columns='Density',inplace=True)
+    #     # change geocode label 
+    #     if 'geo_unit' in city_poly.columns: # for Paris at least
+    #         city_poly.rename(columns={'geo_unit':'geocode'},inplace=True)
+    #     city_poly['geocode']=city_poly['geocode'].astype('str')
 
-    # calculate postcode area
-    city_poly['area']=city_poly.area
+    # # calculate postcode area
+    # city_poly['area']=city_poly.area
 
-    # restrict land-use data to those within our boundary 
-    intersect=gpd.overlay(gdf_boundary,gdf,how='intersection')
-    intersect.drop(columns=['crs','country'],inplace=True)
+    # # restrict land-use data to those within our boundary 
+    # intersect=gpd.overlay(gdf_boundary,gdf,how='intersection')
+    # intersect.drop(columns=['crs','country'],inplace=True)
 
-    # make list of postcodes
-    polylist=city_poly['geocode'].tolist()
-    # predefine stats
-    urbfabarea_poly=[]
-    comarea_poly=[]
-    roadarea_poly=[]
-    urbarea_poly=[]
+    # # make list of postcodes
+    # polylist=city_poly['geocode'].tolist()
+    # # predefine stats
+    # urbfabarea_poly=[]
+    # comarea_poly=[]
+    # roadarea_poly=[]
+    # urbarea_poly=[]
 
-    # calculate stats for each postcode in a for loop
-    for p in polylist:
-        poly_gdf1=gpd.overlay(city_poly.loc[city_poly['geocode']==p,], intersect, how='intersection')
-        poly_gdf1['area2']=poly_gdf1.area
+    # # calculate stats for each postcode in a for loop
+    # for p in polylist:
+    #     poly_gdf1=gpd.overlay(city_poly.loc[city_poly['geocode']==p,], intersect, how='intersection')
+    #     poly_gdf1['area2']=poly_gdf1.area
 
-        urbfabarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Urban_Fabric',].groupby('geocode')['area2'].agg('sum')
-        if len(urbfabarea_poly1)>0:
-            urbfabarea_poly.append(urbfabarea_poly1[0])
-        else:
-            urbfabarea_poly.append(0)
+    #     urbfabarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Urban_Fabric',].groupby('geocode')['area2'].agg('sum')
+    #     if len(urbfabarea_poly1)>0:
+    #         urbfabarea_poly.append(urbfabarea_poly1[0])
+    #     else:
+    #         urbfabarea_poly.append(0)
 
-        comarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Industrial_Commercial',].groupby('geocode')['area2'].agg('sum')
-        if len(comarea_poly1)>0:
-            comarea_poly.append(comarea_poly1[0])
-        else:
-            comarea_poly.append(0)
+    #     comarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Industrial_Commercial',].groupby('geocode')['area2'].agg('sum')
+    #     if len(comarea_poly1)>0:
+    #         comarea_poly.append(comarea_poly1[0])
+    #     else:
+    #         comarea_poly.append(0)
 
-        roadarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Road',].groupby('geocode')['area2'].agg('sum')
-        if len(roadarea_poly1)>0:
-            roadarea_poly.append(roadarea_poly1[0])
-        else:
-            roadarea_poly.append(0)
+    #     roadarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Road',].groupby('geocode')['area2'].agg('sum')
+    #     if len(roadarea_poly1)>0:
+    #         roadarea_poly.append(roadarea_poly1[0])
+    #     else:
+    #         roadarea_poly.append(0)
 
-        urbarea_poly1=poly_gdf1.loc[poly_gdf1['UrbanStatus']=='Urban',].groupby('geocode')['area2'].agg('sum')
-        if len(urbarea_poly1)>0:
-            urbarea_poly.append(urbarea_poly1[0])  
-        else:
-            urbarea_poly.append(0)
+    #     urbarea_poly1=poly_gdf1.loc[poly_gdf1['UrbanStatus']=='Urban',].groupby('geocode')['area2'].agg('sum')
+    #     if len(urbarea_poly1)>0:
+    #         urbarea_poly.append(urbarea_poly1[0])  
+    #     else:
+    #         urbarea_poly.append(0)
 
-    data={'geocode':polylist,'tot_area':city_poly['area'].tolist(),'urb_fabric_area':urbfabarea_poly,'commercial_area':comarea_poly,'road_area':roadarea_poly,'urban_area':urbarea_poly}
+    # data={'geocode':polylist,'tot_area':city_poly['area'].tolist(),'urb_fabric_area':urbfabarea_poly,'commercial_area':comarea_poly,'road_area':roadarea_poly,'urban_area':urbarea_poly}
 
-    lu_poly=pd.DataFrame(data)
-    lu_poly['pc_urb_fabric']=lu_poly['urb_fabric_area']/lu_poly['tot_area']
-    lu_poly['pc_comm']=lu_poly['commercial_area']/lu_poly['tot_area']
-    lu_poly['pc_road']=lu_poly['road_area']/lu_poly['tot_area']
-    lu_poly['pc_urban']=lu_poly['urban_area']/lu_poly['tot_area']
+    # lu_poly=pd.DataFrame(data)
+    # lu_poly['pc_urb_fabric']=lu_poly['urb_fabric_area']/lu_poly['tot_area']
+    # lu_poly['pc_comm']=lu_poly['commercial_area']/lu_poly['tot_area']
+    # lu_poly['pc_road']=lu_poly['road_area']/lu_poly['tot_area']
+    # lu_poly['pc_urban']=lu_poly['urban_area']/lu_poly['tot_area']
 
-    lu_poly['pc_urb_fabric_urban']=lu_poly['urb_fabric_area']/lu_poly['urban_area']
-    lu_poly['pc_comm_urban']=lu_poly['commercial_area']/lu_poly['urban_area']
-    lu_poly['pc_road_urban']=lu_poly['road_area']/lu_poly['urban_area']
+    # lu_poly['pc_urb_fabric_urban']=lu_poly['urb_fabric_area']/lu_poly['urban_area']
+    # lu_poly['pc_comm_urban']=lu_poly['commercial_area']/lu_poly['urban_area']
+    # lu_poly['pc_road_urban']=lu_poly['road_area']/lu_poly['urban_area']
 
-    lu_poly.drop(columns=['urb_fabric_area','commercial_area','road_area','urban_area'],inplace=True)
-    lu_poly['geocode']=lu_poly['geocode'].astype('str')
+    # lu_poly.drop(columns=['urb_fabric_area','commercial_area','road_area','urban_area'],inplace=True)
+    # lu_poly['geocode']=lu_poly['geocode'].astype('str')
 
-    lu_poly.to_csv('../outputs/LU/UA_'+city+'.csv',index=False)
-    print('Finished with ' + city)
+    # lu_poly.to_csv('../outputs/LU/UA_'+city+'.csv',index=False)
+    # print('Finished with ' + city)
+
+    # do again as lowres for FR_other and Madrid
+    if city in ['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','Madrid']:
+            print('get low res shapefile')
+            fp2='../outputs/density_geounits/'+city+'_pop_density_lowres.csv'
+            city_poly2=import_csv_w_wkt_to_gdf(fp2,crs0,gc='geocode')
+            city_poly2.drop(columns='Density',inplace=True)
+
+            # change geocode label 
+            if 'geo_unit' in city_poly2.columns: # for Paris at least
+                city_poly2.rename(columns={'geo_unit':'geocode'},inplace=True)
+            city_poly2['geocode']=city_poly2['geocode'].astype('str')
+
+            # calculate postcode area
+            city_poly2['area']=city_poly2.area
+
+            # restrict land-use data to those within our boundary 
+            intersect=gpd.overlay(gdf_boundary,gdf,how='intersection')
+            intersect.drop(columns=['crs','country'],inplace=True)
+
+            # make list of postcodes
+            polylist=city_poly2['geocode'].tolist()
+            # predefine stats
+            urbfabarea_poly=[]
+            comarea_poly=[]
+            roadarea_poly=[]
+            urbarea_poly=[]
+
+                # calculate stats for each postcode in a for loop
+            for p in polylist:
+                poly_gdf1=gpd.overlay(city_poly2.loc[city_poly2['geocode']==p,], intersect, how='intersection')
+                poly_gdf1['area2']=poly_gdf1.area
+
+                urbfabarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Urban_Fabric',].groupby('geocode')['area2'].agg('sum')
+                if len(urbfabarea_poly1)>0:
+                    urbfabarea_poly.append(urbfabarea_poly1[0])
+                else:
+                    urbfabarea_poly.append(0)
+
+                comarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Industrial_Commercial',].groupby('geocode')['area2'].agg('sum')
+                if len(comarea_poly1)>0:
+                    comarea_poly.append(comarea_poly1[0])
+                else:
+                    comarea_poly.append(0)
+
+                roadarea_poly1=poly_gdf1.loc[poly_gdf1['Class']=='Road',].groupby('geocode')['area2'].agg('sum')
+                if len(roadarea_poly1)>0:
+                    roadarea_poly.append(roadarea_poly1[0])
+                else:
+                    roadarea_poly.append(0)
+
+                urbarea_poly1=poly_gdf1.loc[poly_gdf1['UrbanStatus']=='Urban',].groupby('geocode')['area2'].agg('sum')
+                if len(urbarea_poly1)>0:
+                    urbarea_poly.append(urbarea_poly1[0])  
+                else:
+                    urbarea_poly.append(0)
+
+            data={'geocode':polylist,'tot_area':city_poly2['area'].tolist(),'urb_fabric_area':urbfabarea_poly,'commercial_area':comarea_poly,'road_area':roadarea_poly,'urban_area':urbarea_poly}
+
+            lu_poly=pd.DataFrame(data)
+            lu_poly['pc_urb_fabric']=lu_poly['urb_fabric_area']/lu_poly['tot_area']
+            lu_poly['pc_comm']=lu_poly['commercial_area']/lu_poly['tot_area']
+            lu_poly['pc_road']=lu_poly['road_area']/lu_poly['tot_area']
+            lu_poly['pc_urban']=lu_poly['urban_area']/lu_poly['tot_area']
+
+            lu_poly['pc_urb_fabric_urban']=lu_poly['urb_fabric_area']/lu_poly['urban_area']
+            lu_poly['pc_comm_urban']=lu_poly['commercial_area']/lu_poly['urban_area']
+            lu_poly['pc_road_urban']=lu_poly['road_area']/lu_poly['urban_area']
+
+            lu_poly.drop(columns=['urb_fabric_area','commercial_area','road_area','urban_area'],inplace=True)
+            lu_poly['geocode']=lu_poly['geocode'].astype('str')
+
+            lu_poly.to_csv('../outputs/LU/UA_'+city+'_lowres.csv',index=False)
+            print('Finished with ' + city + 'low-res')
 
 #cities=pd.Series(cities_all)
-cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Nimes'])
+cities=pd.Series(['Madrid'])
 cities.apply(land_use_ua) 

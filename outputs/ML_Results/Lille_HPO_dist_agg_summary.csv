@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.01,2,300,0.174,0.154,194,0.20293153470513237,0.2796226397578465,Lille
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.01,2,300,0.174,0.154,194,0.1724132427295456,0.2676499728948619,Lille

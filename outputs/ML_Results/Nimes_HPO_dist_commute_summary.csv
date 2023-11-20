@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.1,3,100,-0.038,0.577,1043,0.18409310798415346,0.181059329828391,Nimes
+gkf_gridSearch,full,9splits_hhperGroups,0.1,3,100,-0.038,0.577,1043,0.1670393490535843,0.18533346290896324,Nimes

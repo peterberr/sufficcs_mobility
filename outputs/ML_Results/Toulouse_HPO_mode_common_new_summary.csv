@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.2,4,300,0.863,0.014,14047,0.860072354397752,0.6806062762259627,Toulouse
+gkf_gridSearch,full,9splits_hhperGroups,0.3,4,400,0.865,0.007,12354,0.8658452830853279,0.7601876032639954,Toulouse

@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.15,5,200,0.685,0.026,3864,0.6792651554640233,0.6258838807525785,Kassel
+gkf_gridSearch,full,9splits_hhperGroups,0.1,5,200,0.684,0.021,3864,0.6813634423864409,0.6226273298105947,Kassel

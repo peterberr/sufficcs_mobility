@@ -385,7 +385,9 @@ def combine_survey_data(city):
     lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
 
     # transit access
-    transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+    #transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+    # temp solution
+    transit=pd.read_csv('../outputs/transit_access/' + city + '_temp.csv',dtype={'geocode':str})
     # solve issue with definition of some Nimes geocodes, which miss some leading zeros
     if city == 'Nimes':
         transit.loc[~transit['geocode'].isin(list(code_dict.values())),'geocode']=transit.loc[~transit['geocode'].isin(list(code_dict.values())),'geocode'].str.zfill(6)
@@ -464,7 +466,8 @@ def combine_survey_data(city):
     # sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_origin'},inplace=True)
 
     # transit stats, res
-    sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode',how='left').copy() 
+    #sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode',how='left').copy() 
+    sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
     sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
 

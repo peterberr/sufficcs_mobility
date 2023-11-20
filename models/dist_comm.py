@@ -19,7 +19,7 @@ from datetime import datetime
 
 cities_all=['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Paris','Toulouse','Madrid','Wien','France_other','Germany_other']
 countries=['Germany','Germany','Germany','Germany','Germany','Germany','Germany','Germany','France','France','France','France','France','France','France','France','France','Spain','Austria','France','Germany']
-
+cities_small=['Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other','Germany_other']
 def dist_commute(city):
     country=countries[cities_all.index(city)]
     print(city, country)
@@ -125,6 +125,26 @@ def dist_commute(city):
     df['Sex']=df['Sex']-1 # change from [1,2] to [0,1], for plotting purposes
     df=df.loc[df['UrbBuildDensity_res']<1e8,]   # remove high building density outliers (For Leipzig)
 
+    # here is a new section on variable selection       
+    if city=='Wien':
+           df.drop(columns=['IntersecDensity_res','LU_UrbFab_res'],inplace=True)
+           form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res"
+    elif city in ['Berlin','Paris']:
+           df.drop(columns=['UrbBuildDensity_res'],inplace=True)
+           form_str="Trip_Distance ~ FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season +  FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res" 
+    elif city in cities_small:
+           df.drop(columns=['IntersecDensity_res'],inplace=True)
+           form_str="Trip_Distance ~ FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res + FeatureD_LU_UrbFab_res" 
+    elif city == 'Madrid':
+          df.drop(columns=['LU_UrbFab_res'],inplace=True)
+          form_str="Trip_Distance ~ FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res" 
+    else:
+          form_str="Trip_Distance ~ FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res" 
+
+    if city == 'Germany_other':
+          df.drop(columns=['LU_UrbFab_res'],inplace=True)
+          form_str="Trip_Distance ~ FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season + FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res" 
+          
     # identify the feature columns
     N_non_feature=6 # how many non-features are at the start of the df
     cols=df.columns
@@ -209,7 +229,7 @@ def dist_commute(city):
         learning_rate=lr_parameter_all)
     
     writer = pd.ExcelWriter('../outputs/ML_Results/dist_commute/'  + city + '.xlsx', engine='openpyxl')
-    form_str="Trip_Distance ~  FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season +  FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res" # + FeatureD_bike_lane_share_res"
+    #form_str="Trip_Distance ~ FeatureD_HHSize + FeatureD_Sex + FeatureD_Education + FeatureD_Age + FeatureD_Season +  FeatureD_DistSubcenter_res + FeatureD_DistCenter_res + FeatureD_UrbPopDensity_res + FeatureD_UrbBuildDensity_res  + FeatureD_IntersecDensity_res + FeatureD_street_length_res + FeatureD_LU_Comm_res +  FeatureD_LU_UrbFab_res" # + FeatureD_bike_lane_share_res"
 
     for train_idx, test_idx in cv.split(X,groups=gr): # select here 
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -383,5 +403,5 @@ def dist_commute(city):
         pickle.dump(df, h)
 
 cities=pd.Series(cities_all)
-#cities=pd.Series(['Berlin'])
+cities=pd.Series(['Madrid','Germany_other'])
 cities.apply(dist_commute)
