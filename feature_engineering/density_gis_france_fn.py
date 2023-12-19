@@ -699,8 +699,8 @@ def french_density_shapefiles(city,size_thresh):
         gdf_mix.rename(columns={'geo_unit':'geocode','area_lores':'area'},inplace=True)
         #gdf_mix['geocode']=gdf_mix['geocode'].astype(int).astype(str)
         gdf_mix['geocode']=gdf_mix['geocode'].astype(str)
-        gdf_mix['source']='large_units'
-        sub_diss['source']='small_units_agg'
+        gdf_mix['source']='Large units'
+        sub_diss['source']='Small units'
         gdf_mix=gpd.GeoDataFrame(pd.concat([gdf_mix,sub_diss], ignore_index=True))
         gdf_mix=gdf_mix.sort_values(by='geocode')
 
@@ -739,9 +739,11 @@ def french_density_shapefiles(city,size_thresh):
         # save a figure of the mixed resolution geounits
         cmap = mpl.colors.ListedColormap(['#1f77b4', 'red'])
         fig, ax = plt.subplots(figsize=(10,10))
-        gdf_mix.plot(ax=ax,column='source',edgecolor='black',cmap=cmap)
-        plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
-        ax.add_artist(ScaleBar(1)) 
+        gdf_mix.plot(ax=ax,column='source',edgecolor='black',cmap=cmap,legend=True)
+        #plt.title("Aggregated (blue) and higher resolution (red) geo-units: " + city) 
+        #ax.add_artist(ScaleBar(1)) 
+        ax.set_title("Aggregated and higher resolution geo-units: " + city,size=16)
+        plt.axis('off');
         plt.savefig('../outputs/density_geounits/'+ city + '_mixed.png',facecolor='w')
         plt.close()
 
@@ -750,13 +752,17 @@ def french_density_shapefiles(city,size_thresh):
         gdf.plot(ax=ax,edgecolor='black',color='red')
         plt.title("High resolution (blue) resolution geo-units: " + city) 
         ax.add_artist(ScaleBar(1))
+        ax.set_title("Aggregated and higher resolution geo-units: " + city,size=16)
+        plt.axis('off');
         plt.savefig('../outputs/density_geounits/'+ city + '_high.png',facecolor='w')
         plt.close()
         # save a figure of the low resolution geounit
         fig, ax = plt.subplots(figsize=(10,10))
         gdf2.plot(ax=ax,edgecolor='black')
         plt.title("Aggregated (blue) resolution geo-units: " + city) 
-        ax.add_artist(ScaleBar(1))                   
+        ax.add_artist(ScaleBar(1))         
+        ax.set_title("Aggregated and higher resolution geo-units: " + city,size=16)          
+        plt.axis('off');
         plt.savefig('../outputs/density_geounits/'+ city + '_low.png',facecolor='w')
         plt.close()
 
@@ -812,5 +818,5 @@ def french_density_shapefiles(city,size_thresh):
         writer.close()
 
         print('Finished extracting density and shapefiles for ' + city)
-cities=pd.Series(['Nimes','Toulouse'])
+cities=pd.Series(['Dijon'])
 cities.apply(french_density_shapefiles,args=(10,)) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2. Make sure this is consistent with Madrid

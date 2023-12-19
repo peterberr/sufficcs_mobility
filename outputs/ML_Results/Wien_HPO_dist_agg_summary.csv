@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.2,2,300,0.175,1.201,44,0.4930870233193174,0.4203131565156021,Wien
+rkf_gridSearch,agg_postcode,5splits_10repeats,0.2,2,300,0.175,1.201,44,0.4930927342120355,0.4203131565156597,Wien

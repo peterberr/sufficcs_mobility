@@ -107,12 +107,14 @@ def dist_agg(city):
     df_UF=df_UF.merge(count)
     df_UF=df_UF.loc[df_UF['count']>4,]
     df_agg=df_UF.copy()
-    
 
     df_agg.sort_values(by='Res_geocode',inplace=True)
+    df_agg['UrbPopDensity_res']=0.01*df_agg['UrbPopDensity_res'] # convert from per/km2 to per/ha
+    df_agg.loc[:,['LU_UrbFab_res','LU_Comm_res','Commute_Trip']]=100*df_agg.loc[:,['LU_UrbFab_res','LU_Comm_res','Commute_Trip']] # convert to percentages
+    df_agg['UrbBuildDensity_res']=1e-6*df_agg['UrbBuildDensity_res'] # convert from m3/km2 to m3/m2 
     df_agg.dropna(subset=['Trip_Distance'],inplace=True)
     if city in ['Leipzig','Germany_other']:
-           df_agg=df_agg.loc[df_agg['UrbBuildDensity_res']<1e8,:]
+           df_agg=df_agg.loc[df_agg['UrbBuildDensity_res']<100,:]
 
     # here is a new section on variable selection       
     if city=='Wien':
@@ -266,6 +268,7 @@ def dist_agg(city):
     HPO_summary['R2_full_ML']=r2_model
     HPO_summary['R2_full_LR']=r2_model_reg
     HPO_summary['City']=city
+    HPO_summary['N_obs']=N
     HPO_summary.to_csv('../outputs/ML_Results/' + city + '_HPO_dist_agg_summary.csv',index=False)
 
     r2ml=pd.DataFrame(r2ml)
@@ -356,9 +359,9 @@ def dist_agg(city):
     
 
     data.rename(columns={'DistCenter_res':'Dist. to city center','UrbBuildDensity_res':'Built-up density','IntersecDensity_res':'Intersection density',
-                     'LU_Comm_res':'Commercial area','LU_UrbFab_res':'Urban Fabric area','LU_Road_res':'Road area','street_length_res':'Avg. street length',
+                     'LU_Comm_res':'Commercial area (%)','LU_UrbFab_res':'Urban Fabric area (%)','LU_Road_res':'Road area','street_length_res':'Avg. street length',
                      'UrbPopDensity_res':'Population density','DistSubcenter_res':'Dist. to subcenter','transit_accessibility':'Transit accessibility',
-                     'Commute_Trip':'Commute trip share','bike_lane_share_res':'Cycle lane share'},inplace=True)
+                     'Commute_Trip':'Commute trip share (%)','bike_lane_share_res':'Cycle lane share (%)'},inplace=True)
 
     fig = plt.figure(figsize=(11,12))
     for i in range(0,main6):
@@ -376,7 +379,7 @@ def dist_agg(city):
 
             #plt.legend(loc="upper left",prop={'size':12})
             if (xlab== 'Built-up density') & (city == 'Germany_other'):
-                plt.xlim([0, 2e7])
+                plt.xlim([0, 20])
             if i%2==0:
                     ax1.set_ylabel('SHAP value (m)',size=14)
             else:
@@ -406,7 +409,7 @@ def dist_agg(city):
             pickle.dump(df_agg, h)
 
 
-cities=pd.Series(['Germany_other'])
+cities=pd.Series(['Leipzig'])
 #cities=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other'])
 #cities=pd.Series(cities_all)
 cities.apply(dist_agg)

@@ -47,7 +47,7 @@ def mode_model(city):
     elif city=='France_other':
             city0='Clermont'
             df0=pd.read_csv('../outputs/Combined/' + city0 + '_UF.csv')
-            df0.drop(columns=['IncomeDetailed', 'IncomeHarmonised','Des_Sec_Zone', 'Month', 'Ori_Sec_Zone','Res_Sec_Zone', 'Sample','Sector_Zone', 'Zone','geo_unit','N_Stops', 'N_Legs'],errors='ignore',inplace=True)
+            df0.drop(columns=['IncomeDetailed', 'IncomeHarmonised','Des_Sec_Zone', 'Month', 'Ori_Sec_Zone','Res_Sec_Zone', 'Sample','Sector_Zone', 'Zone','geo_unit','N_Stops', 'N_Legs','Mode_disagg'],errors='ignore',inplace=True)
             print(len(df0.columns), 'columns in the data for ', city0)
             df0['City']=city0
             df_all=df0.copy()
@@ -57,7 +57,7 @@ def mode_model(city):
                 print(city1)
                 df1=pd.read_csv('../outputs/Combined/' + city1 + '_UF.csv')
                 df1.drop(columns=['IncomeDetailed', 'IncomeHarmonised', 'Des_Sec_Zone', 'Month', 'Ori_Sec_Zone','Res_Sec_Zone',  'Sample','Sector_Zone', 'Zone','geo_unit',
-                                'Commune', 'Des_Cell', 'Grid_Cell', 'NoMobilityConstraints','Ori_Cell','N_Stops', 'N_Legs'],errors='ignore',inplace=True) # plus spme non-shared Paris variables
+                                'Commune', 'Des_Cell', 'Grid_Cell', 'NoMobilityConstraints','Ori_Cell','N_Stops', 'N_Legs','Mode_disagg'],errors='ignore',inplace=True) # plus spme non-shared Paris variables
                 print(len(df1.columns), 'columns in the data for ', city1)
                 df1['City']=city1
                 if len(df1.columns==df_all.columns):
@@ -135,6 +135,12 @@ def mode_model(city):
     df.loc[df['Mode']=='Foot','Mode_num']=2
     df.loc[df['Mode']=='Transit','Mode_num']=3
 
+    df['UrbPopDensity_res']=0.01*df['UrbPopDensity_res'] # convert from per/km2 to per/ha
+    df.loc[:,['bike_lane_share_res','LU_UrbFab_res','LU_Comm_res']]=100*df.loc[:,['bike_lane_share_res','LU_UrbFab_res','LU_Comm_res']] # convert to percentages
+    # remove high building density outliers (For Leipzig)
+    #df=df.loc[df['UrbBuildDensity_res']<1e8,]  
+    df['UrbBuildDensity_res']=1e-6*df['UrbBuildDensity_res'] # convert from m3/km2 to m3/m2 
+
     df.drop(columns='Mode',inplace=True)
 
     df.loc[df['Education'].isin(['Secondary+BAC','Secondary+Matura']),'Education']='Secondary'
@@ -146,9 +152,9 @@ def mode_model(city):
     elif city in ['Berlin','Paris']:
            df.drop(columns=['UrbBuildDensity_res'],inplace=True)
            form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation + FeatureM_Education + FeatureM_UrbPopDensity_res + FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_IntersecDensity_res + FeatureM_street_length_res +FeatureM_bike_lane_share_res + FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res"       
-    elif city in cities_small:
-           df.drop(columns=['IntersecDensity_res'],inplace=True)
-           form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res"     
+    # elif city in cities_small:
+    #        df.drop(columns=['IntersecDensity_res'],inplace=True)
+    #        form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res"     
     else:
          form_str="Mode_num ~ FeatureM_Trip_Time + FeatureM_Season + FeatureM_Trip_Purpose_Agg + FeatureM_Sex + FeatureM_Age + FeatureM_Trip_Distance + FeatureM_CarOwnershipHH + FeatureM_HHSize + FeatureM_Occupation +  FeatureM_Education + FeatureM_UrbPopDensity_res +  FeatureM_DistSubcenter_res + FeatureM_DistCenter_res +  FeatureM_UrbBuildDensity_res +  FeatureM_IntersecDensity_res +  FeatureM_street_length_res +FeatureM_bike_lane_share_res +  FeatureM_LU_UrbFab_res + FeatureM_LU_Comm_res + FeatureM_transit_accessibility_res" 
 
@@ -324,10 +330,12 @@ def mode_model(city):
     f1_model_LR = metrics.f1_score(y_test2, y_predict2, average='weighted')
     print('Model f1: ' + city)
     print(f1_model_ML)
+    print('LR:',f1_model_LR)
 
     HPO_summary['F1_full_ML']=f1_model_ML
     HPO_summary['F1_full_LR']=f1_model_LR
     HPO_summary['City']=city
+    HPO_summary['N_obs']=N
     HPO_summary.to_csv('../outputs/ML_Results/' + city + '_HPO_mode_common_new_summary.csv',index=False)
 
     # optionally here, check which variables are more important than random noise, then downselect X to those variables, and go back to HPO (or CV) and run once more from there.
@@ -365,10 +373,9 @@ def mode_model(city):
     plt.close() 
 
     col_dict= {'DistCenter_res':'Dist. to city center','DistSubcenter_res':'Dist. to subenter', 'UrbPopDensity_res':'Population density','UrbBuildDensity_res':'Built-up density','ParkingAvailable_Dest':'Parking available',
-        'IntersecDensity_res':'Intersection density','LU_Comm_res':'Commercial area','LU_UrbFab_res':'Urban Fabric area','street_length_res':'Avg. street length','bike_lane_share_res':'Cycle lanes',
+        'IntersecDensity_res':'Intersection density','LU_Comm_res':'Commercial area','LU_UrbFab_res':'Urban Fabric area','street_length_res':'Avg. street length','bike_lane_share_res':'Cycle lane share',
         'Trip_Purpose_Agg_Home↔Work':'Commute trip', 'Trip_Purpose_Agg_Home↔Companion':'Companion trip', 'TravelAlone':'Solo trip','Trip_Purpose_Agg_Home↔Leisure':'Leisure trip','Trip_Purpose_Agg_Home↔Shopping':'Shopping trip','Trip_Purpose_Agg_Home↔School':'School trip',
-        'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning trip','transit_accessibility_res':'Transit Accessibility',
-        'Season_Winter':'Winter season','MeanTime2Transit_res':'Time to transit', #'diff':'Elevation_diff',
+        'Trip_Time_Evening':'Evening trip','Trip_Time_AM_Rush':'Morning rush-hour','Trip_Time_PM Rush':'Evening rush-hour','transit_accessibility_res':'Transit Accessibility', 'Season_Winter':'Winter season',
         'Trip_Distance':'Trip distance','CarOwnershipHH':'Car ownership','Occupation_Student_School':'School Student',
         'Age':'Age','Sex':'Sex','HHSize':'Household size','IncomeDescriptiveNumeric':'Income','IncomeDetailed_Numeric':'Income',
         'Education_University':'University education','Education_Apprenticeship':'Apprenticeship education', 'Occupation_Employed_FullTime':'Employed'}
@@ -444,9 +451,8 @@ def mode_model(city):
 
         plt.savefig('../outputs/ML_Results/result_figures/mode_common_new/' + city + '_FI_all.png',facecolor='w',dpi=65,bbox_inches='tight')
         plt.close() 
-cities_list=pd.Series(['Wien']) 
-#cities_list=pd.Series(cities_all)
-#cities_list=pd.Series(['Clermont','Dijon','Lille','Lyon','Montpellier','Nantes','Nimes','Toulouse','France_other'])
-
+#cities_list=pd.Series(['France_other','Germany_other']) 
+# cities_list=pd.Series(cities_all)
+cities_list=pd.Series(['Paris'])
 
 cities_list.apply(mode_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

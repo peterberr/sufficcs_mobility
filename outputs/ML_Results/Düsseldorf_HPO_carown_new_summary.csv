@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-kf_gridSearch,full,9splits,0.15,4,100,0.804,0.025,3145,0.7971431113537529,0.795919173211277,Düsseldorf
+kf_gridSearch,full,9splits,0.15,4,100,0.804,0.025,3145,0.7999615340443957,0.7956704845278866,Düsseldorf

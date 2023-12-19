@@ -46,6 +46,7 @@ def carown_model(city):
     elif city=='France_other':
         city0='Clermont'
         df0=pd.read_csv('../outputs/Combined/' + city0 + '_co_UF.csv')
+        
         print(len(df0.columns), 'columns in the data for ', city0)
         df0['City']=city0
         df_all=df0.copy()
@@ -75,8 +76,12 @@ def carown_model(city):
 
     df.loc[df['HHType_simp'].isin(['Single_Female_Parent','Single_Male_Parent']),'HHType_simp']='Single_Parent'
     df=df.loc[df['UrbPopDensity']<80000,]   
+    df['UrbPopDensity']=0.01*df['UrbPopDensity'] # convert from per/km2 to per/ha
+    
+    df.loc[:,['bike_lane_share','LU_UrbFab','LU_Comm']]=100*df.loc[:,['bike_lane_share','LU_UrbFab','LU_Comm']]
     # remove high building density outliers (For Leipzig)
-    df=df.loc[df['UrbBuildDensity']<1e8,]   
+    df=df.loc[df['UrbBuildDensity']<1e8,]  
+    df['UrbBuildDensity']=1e-6*df['UrbBuildDensity'] # convert from m3/km2 to m3/m2 
     df=df.loc[df['maxAgeHH']>0,]  
     df.drop(columns='HHType_simp',inplace=True)
     df.dropna(inplace=True)
@@ -316,8 +321,8 @@ def carown_model(city):
     if city == 'Germany_other': citylab='Germany, other'
     if city == 'France_other': citylab='France, other'
 
-    lab_dict= {'DistCenter':'Dist. to city center (km)','IntersecDensity':'Instersection density','street_length':'Avg. street length','bike_lane_share':'Cycle lane share',
-       'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter','LU_Urban':'Urban area','LU_UrbFab':'Urban fabric area',
+    lab_dict= {'DistCenter':'Dist. to city center (km)','IntersecDensity':'Instersection density','street_length':'Avg. street length','bike_lane_share':'Cycle lane share (%)',
+       'UrbBuildDensity':'Built-up density','UrbPopDensity':'Population density', 'DistSubcenter':'Dist. to subcenter','LU_Urban':'Urban area (%)','LU_UrbFab':'Urban fabric area (%)',
        'transit_accessibility':'Transit Accessibility','HHType_simp_Single_Female':'Single female household','UniversityEducation':'University education',
        'IncomeDetailed_Numeric':'Income','HHSize':'Household size','maxAgeHH':'Max householder age','InEmployment':'Employed'}
 
@@ -402,7 +407,7 @@ def carown_model(city):
     plt.savefig('../outputs/ML_Results/result_figures/carown_new/' + city + '_FI_detail6.png',facecolor='w',dpi=65,bbox_inches='tight')
     plt.close() 
 
-#cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
-cities=pd.Series(['France_other','Germany_other'])
+cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam','Clermont','Paris','Toulouse','France_other','Germany_other'])
+#cities=pd.Series(['France_other','Germany_other'])
 
 cities.apply(carown_model) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2

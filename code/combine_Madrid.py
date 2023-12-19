@@ -371,7 +371,7 @@ sHPW_UF['UrbBuildDensity_res']=sHPW_UF['BuildDensity_res']/sHPW_UF['LU_Urban_res
 # transit stats, res
 sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
 sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
+sHPW_UF.rename(columns={'score_spatiotemporal_min':'transit_accessibility_res'},inplace=True)
 
 sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
 

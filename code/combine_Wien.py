@@ -348,7 +348,7 @@ sHPW_UF.rename(columns={'pc_urb_fabric':'LU_UrbFab_res','pc_comm':'LU_Comm_res',
 # transit stats, res
 sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
 sHPW_UF.drop(columns='geocode',inplace=True)
-sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
+sHPW_UF.rename(columns={'score_spatiotemporal_min':'transit_accessibility_res'},inplace=True)
 
 # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
 # sHPW_UF['UrbPopDensity_origin']=sHPW_UF['PopDensity_origin']/sHPW_UF['LU_UrbFab_origin']

@@ -7,6 +7,7 @@ import geopandas as gpd
 import numpy as np
 from pyproj import CRS
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from matplotlib_scalebar.scalebar import ScaleBar
 from itertools import chain
 import pickle
@@ -125,10 +126,12 @@ large=gdf_lo.loc[gdf_lo['area']>size_thresh,'geo_unit']
 sub=gdf_hi.loc[gdf_hi['geo_unit'].isin(large),:]
 sub=sub.loc[:,('geo_unit_highres','geometry','area','Population','Density')]
 sub.rename(columns={'geo_unit_highres':'geocode'},inplace=True)
+sub['source']='Small units'
 
 gdf_mix=gdf_lo.loc[~gdf_lo['geo_unit'].isin(large),('geo_unit','geometry','area','Population','Density')]
 gdf_mix.rename(columns={'geo_unit':'geocode'},inplace=True)
 gdf_mix['geocode']=gdf_mix['geocode'].astype(int).astype(str)
+gdf_mix['source']='Large units'
 gdf_mix=gpd.GeoDataFrame(pd.concat([gdf_mix,sub], ignore_index=True))
 print('Populations represented in low-res, high-res, and mixres density files, and original data:')
 print(gdf_lo['Population'].sum())
@@ -137,23 +140,32 @@ print(gdf_mix['Population'].sum())
 print(sec_gdf_pop['Population'].sum())
 # plot each gdf and save the plot
 
+cmap = mpl.colors.ListedColormap(['#1f77b4', 'red'])
 fig, ax = plt.subplots(figsize=(10, 10))
-plt.title("Aggregated (blue) and higher resolution (red) geo-units:  Madrid") 
-ax.add_artist(ScaleBar(1))
-gdf_mix.plot(ax=ax,edgecolor='black')
-sub.plot(ax=ax, color='red',alpha=0.8,edgecolor='black')
+#plt.title("Aggregated (blue) and higher resolution (red) geo-units:  Madrid") 
+# scale=ScaleBar(1,location='lower right')
+# ax.add_artist(scale)
+ax.set_title("Aggregated and higher resolution geo-units: " + city,size=16)
+gdf_mix.plot(ax=ax,column='source',edgecolor='black',cmap=cmap,legend=True)
+#plt.legend(loc='center right')
+#sub.plot(ax=ax, color='red',alpha=0.8,edgecolor='black')
+plt.axis('off');
 plt.savefig('../outputs/density_geounits/Madrid_mixed.png',facecolor='w')
 
 fig, ax = plt.subplots(figsize=(10, 10))
-plt.title("Aggregated geo-units:  Madrid") 
+#plt.title("Aggregated geo-units:  Madrid") 
 ax.add_artist(ScaleBar(1))
+ax.set_title("Aggregated geo-units: Madrid",size=16)
 gdf_lo.plot(ax=ax,edgecolor='black')
+plt.axis('off');
 plt.savefig('../outputs/density_geounits/Madrid_low.png',facecolor='w')
 
 fig, ax = plt.subplots(figsize=(10, 10))
-plt.title("High resolutin geo-units:  Madrid") 
+#plt.title("High resolution geo-units:  Madrid") 
 ax.add_artist(ScaleBar(1))
+ax.set_title("High resolution geo-units: Madrid",size=16)
 gdf_hi.plot(ax=ax,edgecolor='black',color='red')
+plt.axis('off');
 plt.savefig('../outputs/density_geounits/Madrid_high.png',facecolor='w')
 
 # create and save the city boundary

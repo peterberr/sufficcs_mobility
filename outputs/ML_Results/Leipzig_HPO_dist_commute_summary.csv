@@ -1,2 +1,2 @@
 CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.1,3,100,0.016,0.05,1807,0.02108566326955086,0.034608020744504975,Leipzig
+gkf_gridSearch,full,9splits_hhperGroups,0.1,3,100,0.016,0.05,1807,0.02108566326955086,0.03460802075089209,Leipzig

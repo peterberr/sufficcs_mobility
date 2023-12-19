@@ -230,6 +230,7 @@ def combine_survey_data(city):
     sW.loc[sW['trip_type_all']=='School-Home','Trip_Purpose']='School-Home'
     sW.loc[sW['trip_type_all']=='Home-Work','Trip_Purpose']='Home-Work'
     sW.loc[sW['trip_type_all']=='Work-Home','Trip_Purpose']='Work-Home'
+    sW.loc[sW['trip_type_all']=='Home-Home','Trip_Purpose']='Home↔Home'
     sW.loc[sW['trip_type_all']=='Home-Leisure','Trip_Purpose']='Home-Leisure'
     sW.loc[sW['trip_type_all']=='Leisure-Home','Trip_Purpose']='Leisure-Home'
     sW.loc[sW['trip_type_all']=='Shopping-Shopping','Trip_Purpose']='Shopping'
@@ -385,9 +386,9 @@ def combine_survey_data(city):
     lu=lu.loc[:,('geocode','pc_urb_fabric','pc_comm','pc_road','pc_urban')]
 
     # transit access
-    #transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
+    transit=pd.read_csv('../outputs/transit_access/' + city + '.csv',dtype={'geocode':str})
     # temp solution
-    transit=pd.read_csv('../outputs/transit_access/' + city + '_temp.csv',dtype={'geocode':str})
+    # transit=pd.read_csv('../outputs/transit_access/' + city + '_temp.csv',dtype={'geocode':str})
     # solve issue with definition of some Nimes geocodes, which miss some leading zeros
     if city == 'Nimes':
         transit.loc[~transit['geocode'].isin(list(code_dict.values())),'geocode']=transit.loc[~transit['geocode'].isin(list(code_dict.values())),'geocode'].str.zfill(6)
@@ -469,7 +470,7 @@ def combine_survey_data(city):
     #sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode',how='left').copy() 
     sHPW_UF=sHPW_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
     sHPW_UF.drop(columns='geocode',inplace=True)
-    sHPW_UF.rename(columns={'score_spatiotemporal':'transit_accessibility_res'},inplace=True)
+    sHPW_UF.rename(columns={'score_spatiotemporal_min':'transit_accessibility_res'},inplace=True)
 
     sHPW_UF.to_csv('../outputs/Combined/'+city+'_UF.csv',index=False)
 
@@ -764,7 +765,7 @@ def combine_survey_data(city):
         # transit access   
         sH2_UF=sH2_UF.merge(transit,left_on='Res_geocode',right_on='geocode').copy() 
         sH2_UF.drop(columns='geocode',inplace=True)
-        sH2_UF.rename(columns={'score_spatiotemporal':'transit_accessibility'},inplace=True)
+        sH2_UF.rename(columns={'score_spatiotemporal_min':'transit_accessibility'},inplace=True)
 
         # recalculate population densities based on urban fabric denominator (Changed to urban, as some demoninators were too low, even some 0 values), and building volume densities based on urban demoninator
         sH2_UF['UrbPopDensity']=sH2_UF['PopDensity']/sH2_UF['LU_Urban']
