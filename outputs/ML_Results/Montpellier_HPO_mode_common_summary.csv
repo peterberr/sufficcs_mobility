@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.3,4,400,0.876,0.009,10795,0.8751513169242195,0.7400258471783387,Montpellier

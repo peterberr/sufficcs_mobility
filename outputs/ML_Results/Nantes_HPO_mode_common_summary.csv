@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.2,4,400,0.866,0.013,14140,0.8559668156505666,0.7245245586356311,Nantes

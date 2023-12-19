@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.1,4,200,0.26,0.008,51438,0.26049382790295383,0.21856724643139813,France_other

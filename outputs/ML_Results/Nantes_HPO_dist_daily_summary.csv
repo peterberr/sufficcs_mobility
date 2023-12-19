@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,3,200,0.253,0.021,7636,0.25352681705213065,0.22938956200632876,Nantes

@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-kf_gridSearch,full,9splits,0.1,5,100,0.844,0.021,1378,0.8393390462210363,0.8426539797979837,Clermont

@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-kf_gridSearch,full,9splits,0.15,5,100,0.85,0.021,4271,0.8482295712232635,0.8454394575458185,Toulouse

@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N_est,F1_best,SD_best,N_obs,F1_full_ML,F1_full_LR,City
-gkf_gridSearch,full,9splits_hhperGroups,0.15,4,400,0.89,0.013,5986,0.876614671157186,0.7050220652904535,Dijon

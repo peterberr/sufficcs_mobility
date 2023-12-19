@@ -1,2 +1,0 @@
-CV_Type,Sample,CV_params,LR,MD,N_est,R2_best,SD_best,N_obs,R2_full_ML,R2_full_LR,City
-rkf_gridSearch,agg_postcode,5splits_10repeats,0.05,2,200,0.203,0.029,3360,0.20439833422619957,0.1830634022415688,Dijon
