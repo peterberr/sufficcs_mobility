@@ -138,6 +138,13 @@ sP.loc[sP['Age']<7,['Education','Occupation']]='Pre-School'
 sP.loc[(sP['Age']>11) & (sP['Age']<16) & (sP['Education'].isin(['No diploma yet','Unkown'])),'Education']="Elementary" # if aged between 12 and 15, assume at least an Elementary education
 sP.loc[(sP['Age']>15) & (sP['Age']<20) & (sP['Education'].isin(['No diploma yet','Unkown'])),'Education']="Secondary" # if aged between 16 and 19, assume at least a Secondary education.
 
+# calculate total number of cars per household, and per person
+sH.loc[sH['CarOwnershipHH_num']<0,'CarOwnershipHH_num']=0
+sH['Car_HH']=sH['CarOwnershipHH_num']
+sH['Car_cap']=sH['Car_HH']/sH['HHSize']
+sH.drop(columns='CarOwnershipHH_num',inplace=True)
+
+
 # drop unneccessary columns
 #sW.drop(columns=['Ori_Reason','Des_Reason','HHNR','Person','Time','Hour'],inplace=True)
 sW.drop(columns=['HHNR','Person','Time','Hour'],inplace=True)

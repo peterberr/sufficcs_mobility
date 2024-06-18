@@ -2,7 +2,7 @@ import pickle
 
 var_dict_H = {'Res_geocode':'PLZ','HHNR':'HHNR', # Variables related to administrative boundary units and identifiers
 'HHSize':'V_ANZ_PERS','IncomeDetailed':'V_EINK', 'IncomeHarmonised':'V_EINK','IncomeDetailed_Numeric':'V_EINK','HHType':'E_HHTYP',  # household size and income
-'MBikeAvailable':'V_ANZ_MOT125','MopScootAvailable':'V_ANZ_MOPMOT','CarOwnershipHH':'V_ANZ_PKW_PRIV','CompanyCarHH':'V_ANZ_PKW_DIENST', # ownership of transport vehicles, availability of car/bike is in the person file
+'MBikeAvailable':'V_ANZ_MOT125','MopScootAvailable':'V_ANZ_MOPMOT','CarOwnershipHH':'V_ANZ_PKW_PRIV','CompanyCarHH':'V_ANZ_PKW_DIENST', 'CarOwnershipHH_num':'V_ANZ_PKW_PRIV','CompanyCarHH_num':'V_ANZ_PKW_DIENST',  # ownership of transport vehicles, availability of car/bike is in the person file
 'Time2Bus':'V_GEHZEIT_BUS_HH','Time2Tram':'V_GEHZEIT_STRAB_HH','Time2SBahn':'V_GEHZEIT_SBAHN_HH','Time2UBahn':'V_GEHZEIT_UBAHN_HH','Time2Train':'V_GEHZEIT_NFZUG_HH', # Variables related to proximity to transit
 'HH_Weight':'GEWICHT_HH'}
 
@@ -15,11 +15,12 @@ value_dict_H={'Res_geocode': {}, 'HHNR': {}, 'HHSize':{},
 'MopScootAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-10:0},
 'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1, 11:1, 12:1, 13:1, 14:1, 15:0,-10:0},
 'CompanyCarHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1, 11:1, 12:1, 13:1, 14:1, 15:0,-10:0},
+'CarOwnershipHH_num': {},'CompanyCarHH_num': {},
 'Time2Bus':{},'Time2Tram':{},'Time2SBahn':{},'Time2UBahn':{},'Time2Train':{},
 'HH_Weight':{}
 }
 
-na_dict_H={'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown','HHType':'Unknown','MBikeAvailable':0,'MopScootAvailable':0,'CarOwnershipHH':0,'CompanyCarHH':0}
+na_dict_H={'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown','HHType':'Unknown','MBikeAvailable':0,'MopScootAvailable':0,'CarOwnershipHH':0,'CompanyCarHH':0,'CarOwnershipHH_num':0,'CompanyCarHH_num':0}
 
 var_dict_P = {'HHNR':'HHNR','Person':'PNR', # Variables related to administrative boundary units and identifiers
 'Age':'V_ALTER','Sex':'V_GESCHLECHT', # i don't see a 'relationship' variable in srv. the trip month and day coming from the trip file

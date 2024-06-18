@@ -2,7 +2,7 @@ import pickle
 
 var_dict_H = {'Grid_Cell':'RESC','Commune':'RESCOMM','HHNR':'NQUEST', # Variables related to administrative boundary units and identifiers
 'Week':'SEM',
-'BikeAvailable':'NB_VELO', 'CarAvailable':'NB_VD','CarOwnershipHH':'NB_VD','2_3WAvailable':'NB_2RM',
+'BikeAvailable':'NB_VELO', 'CarAvailable':'NB_VD','CarOwnershipHH':'NB_VD','CarOwnershipHH_num':'NB_VD','2_3WAvailable':'NB_2RM',
 'HHSize':'MNP','IncomeDetailed':'REVENU','IncomeHarmonised':'REVENU',
 'HouseType':'TYPELOG','HouseTenure':'OCCUPLOG','HouseTenureAgg':'OCCUPLOG','HH_Weight':'POIDSM'}
 
@@ -10,7 +10,7 @@ value_dict_H={'Grid_Cell': {}, 'Commune': {}, 'HHNR':{}, # Variables related to 
 'Week':{},
 'BikeAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1, 11:1, 12:1},
 'CarAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1},
-'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1},'CarOwnershipHH_num':{},
 '2_3WAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1},
 'HHSize': {},
 'IncomeDetailed': {1: 'Under800', 2: '800-1200', 3: '1200-1600', 4: '1600-2000', 5:'2000-2400', 6:'2400-3000', 7:'3000-3500', 8:'3500-4500', 9:'4500-5500',10:'Over5500',11:'Unkown',12:'Unknown'},
@@ -21,7 +21,7 @@ value_dict_H={'Grid_Cell': {}, 'Commune': {}, 'HHNR':{}, # Variables related to 
 'HH_Weight':{}
 }
 # values to fill in with if NA
-na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'2_3WAvailable':0,'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown',
+na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'CarOwnershipHH_num':0,'2_3WAvailable':0,'IncomeDetailed':'Unknown','IncomeHarmonised':'Unknown',
 'HouseType':'Unknown','HouseTenure':'Unknown','HouseTenureAgg':'Unknown'}
 
 var_dict_P = {'Grid_Cell':'RESC','Commune':'RESCOMM','HHNR':'NQUEST','Person':'NP', # Variables related to administrative boundary units and identifiers
@@ -64,10 +64,31 @@ value_dict_W={'Grid_Cell': {}, 'Commune': {},'HHNR':{},'Person':{},'Trip':{},  #
 
 na_dict_W={}
 
+var_dict_T={'HHNR':'NQUEST','Person':'NP','Trip':'ND','Leg':'NT', # Variables related to administrative boundary units and identifiers
+'Ori_Cell':'ENTC','Des_Cell':'SORTC','Ori_Sec':'entsect','Des_Sec':'sortsect',
+'Mode':'MOYEN','Mode_disagg':'MOYEN','N_People':'NBPV','Trip_Distance':'TPORTEE'
+}
+
+# includes mode_disagg, which includes modes of UBahn, SBahn, Train, Bus, Tram.
+value_dict_T={'HHNR':{}, 'Person': {},'Trip':{},'Leg':{},
+'Ori_Cell':{},'Des_Cell':{},'Ori_Sec':{},'Des_Sec':{}, # these O-D variables need further modification to split out sectors and zones
+'Mode':{1:'Foot',10:'Transit',11:'Transit',12:'Transit',13:'Transit',14:'Transit',15:'Transit',16:'Transit',17:'Transit',18:'Transit',19:'Transit',20:'Transit', 
+               30:'Car',31:'Car',32:'Transit',33:'Car',34:'Transit',35:'Car',40:'Other',41:'Transit',42:'Transit',43:'Transit',
+               50:'Car',51:'Car',52:'Car',53:'Car',54:'2_3_Wheel',55:'2_3_Wheel',60:'Bike',61:'Bike',62:'Bike',63:'Bike',
+               70:'Car',71:'Car',72:'Car',73:'Car',74:'2_3_Wheel',75:'2_3_Wheel',80:'Foot',81:'Foot',82:'Other'},
+'Mode_disagg':{1:'Foot',10:'SBahn',11:'SBahn',12:'Tram',13:'UBahn',14:'Tram',15:'Bus',16:'Bus',17:'Bus',18:'Bus',19:'Bus',20:'Bus', 
+               30:'Car',31:'Car',32:'Bus',33:'Car',34:'Bus',35:'Car',40:'Other',41:'Train',42:'Train',43:'Train',
+               50:'Car',51:'Car',52:'Car',53:'Car',54:'2_3_Wheel',55:'2_3_Wheel',60:'Bike',61:'Bike',62:'Bike',63:'Bike',
+               70:'Car',71:'Car',72:'Car',73:'Car',74:'2_3_Wheel',75:'2_3_Wheel',80:'Foot',81:'Foot',82:'Other'},
+'N_People':{},'Trip_Distance':{}
+}
+
+na_dict_T={}
+
 # Combine variable, value, and na dictionaries
-var_all = {'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
-value_all = {'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W}
-na_all = {'HH': na_dict_H,'P':na_dict_P,'W':na_dict_W}
+var_all = {'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W,'T':var_dict_T}
+value_all = {'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W,'T':value_dict_T}
+na_all = {'HH': na_dict_H,'P':na_dict_P,'W':na_dict_W,'T':na_dict_T}
 
 # save combined dictionaries
 with open('../dictionaries/Paris_var.pkl', 'wb') as f:

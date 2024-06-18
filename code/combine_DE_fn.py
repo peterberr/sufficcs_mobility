@@ -26,7 +26,7 @@ with open('../dictionaries/city_postcode_DE.pkl','rb') as f:
     city_plz = pickle.load(f)
 
 
-inc_stats_all=pd.DataFrame(columns = ['Income', 'CarOwnershipHH', 'Trip_Distance', 'Trip_Distance_Car','Car_ModeShare', 'City'])
+inc_stats_all=pd.DataFrame(columns = ['Income', 'CarOwnershipHH','Trip_Distance', 'Trip_Distance_Car','Car_ModeShare', 'City'])
 
 def combine_survey_data(city):
     global inc_stats_all
@@ -111,6 +111,12 @@ def combine_survey_data(city):
 
     # count company cars towards car ownership
     sH.loc[sH['CompanyCarHH']==1,'CarOwnershipHH']=1
+
+    # calculate total number of cars per household, and per person
+    sH.loc[sH['CarOwnershipHH_num']<0,'CarOwnershipHH_num']=0
+    sH.loc[sH['CompanyCarHH_num']<0,'CompanyCarHH_num']=0
+    sH['Car_HH']=sH['CarOwnershipHH_num']+sH['CompanyCarHH_num']
+    sH['Car_cap']=sH['Car_HH']/sH['HHSize']
 
     # define Month and Season in the trip file
     sW['Month']=sW.loc[:,'Date'].str[3:5]
@@ -568,6 +574,7 @@ def combine_survey_data(city):
     sHPW.loc[sHPW['IncomeDetailed']=='Over5600','Income']=6000
 
     # plot car ownership by income 
+    # 'Income', 'CarOwnershipHH','NumCarHH','NumCarCap', 
     hh_inc_car=pd.DataFrame(sHPW.groupby(['HHNR'])['Income','CarOwnershipHH'].mean()).reset_index()
     inc_car=hh_inc_car.groupby('Income')['CarOwnershipHH'].mean().reset_index()
     inc_N=hh_inc_car.groupby('Income')['CarOwnershipHH'].count().reset_index()
@@ -726,4 +733,4 @@ def combine_survey_data(city):
 cities=pd.Series(['Berlin','Dresden','Düsseldorf','Frankfurt am Main','Kassel','Leipzig','Magdeburg','Potsdam'])
 #cities=pd.Series(['Potsdam']) #
 cities.apply(combine_survey_data) # args refers to the size threshold above which to divide large units into their smaller sub-components, e.g. 10km2
-inc_stats_all.to_csv('../figures/plots/income_stats_DE.csv',index=False)
+#inc_stats_all.to_csv('../figures/plots/income_stats_DE.csv',index=False)

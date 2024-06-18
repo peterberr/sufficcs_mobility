@@ -101,22 +101,19 @@ def combine_survey_data(city):
     sP=sP[list(value_all['P'].keys())]
     sW=sW[list(value_all['W'].keys())]
 
-    # define household id !! this is city specific !!
-    # sH0['HHNR']=sH0['geo_unit'].astype('str')+'_'+sH0['Sample'].astype('str')
-
-    # define, sector, zone, and household id !! this is city specific !!
+    # define, sector, zone, and household id
 
     sH['geo_unit'] = sH['Sector_Zone'].apply(lambda y: trunc(0.001*y))
     sH['Zone'] = sH['Sector_Zone'].apply(lambda y: y % 1000)
     sH['HHNR']=sH['geo_unit'].astype('str')+'_'+sH['Sample'].astype('str')
 
-    # define, sector, zone, household, and person id !! this is city specific !!
+    # define, sector, zone, household, and person id 
     sP['geo_unit'] = sP['Sector_Zone'].apply(lambda y: trunc(0.001*y))
     sP['Zone'] = sP['Sector_Zone'].apply(lambda y: y % 1000)
     sP['HHNR']=sP['geo_unit'].astype('str')+'_'+sP['Sample'].astype('str')
     sP['HH_PNR']=sP['HHNR']+'_'+sP['Person'].astype('str')
 
-    # define, sector, zone, household, and person, and trip id !! this is city specific !!
+    # define, sector, zone, household, and person, and trip id 
     sW['geo_unit'] = sW['Sector_Zone'].apply(lambda y: trunc(0.001*y))
     sW['Zone'] = sW['Sector_Zone'].apply(lambda y: y % 1000)
     sW['HHNR']=sW['geo_unit'].astype('str')+'_'+sW['Sample'].astype('str')
@@ -137,7 +134,7 @@ def combine_survey_data(city):
         if len(sH['HHNR'].unique())!=len(sH):
             print('Unique HHNR still not found with sector_zone + sample.')
 
-    # merge the household income variable into the household file !! this is only for some cities !!
+    # merge the household income variable into the household file !! this is only for some cities, Clermont and Toulouse !!
     if 'fn_hh0' in locals():
         sH0=pd.read_csv(fn_hh0,sep=';')
 
@@ -170,6 +167,12 @@ def combine_survey_data(city):
     hhs=sP['HHNR'].value_counts().reset_index()
     hhs.rename(columns={'index':'HHNR','HHNR':'HHSize'},inplace=True)
     sH=sH.merge(hhs,on='HHNR')
+
+    # calculate total number of cars per household, and per person
+    sH.loc[sH['CarOwnershipHH_num']<0,'CarOwnershipHH_num']=0
+    sH['Car_HH']=sH['CarOwnershipHH_num']
+    sH['Car_cap']=sH['Car_HH']/sH['HHSize']
+    sH.drop(columns='CarOwnershipHH_num',inplace=True)
 
     # address inconsistencies with the Person 'Education' variable, arising from respondents who have completed a certain level of education/training responding no dimploma yet, even though they have lower diplomas than the one they are currently studying for
     # these assumptions are based on French law, in which it is mandatory to go to school until age 16 (end of secondary school), so anyone in an occupation post-16 is very likely to have some education. https://www.expatica.com/fr/education/children-education/french-education-system-101147/

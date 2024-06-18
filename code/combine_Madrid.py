@@ -96,6 +96,14 @@ sH.loc[sH['Type_V5'].isin([1,3,4]),'CarAvailable']=1
 
 sH['CarOwnershipHH']=sH['CarAvailable']
 
+# calculate total number of cars per household, and per person
+sH['Car_HH']=0
+for i in sH.index:
+    sH['Car_HH'][i]=int(sH['Type_V1'][i] in [1,3,4])+int(sH['Type_V2'][i] in [1,3,4])+int(sH['Type_V3'][i] in [1,3,4])+int(sH['Type_V4'][i] in [1,3,4])+int(sH['Type_V5'][i] in [1,3,4])
+#sH['Car_HH']=int(sH['Type_V1'].isin([1,3,4]))+int(sH['Type_V2'].isin([1,3,4]))+int(sH['Type_V3'].isin([1,3,4]))+int(sH['Type_V4'].isin([1,3,4]))+int(sH['Type_V5'].isin([1,3,4]))
+sH['Car_cap']=sH['Car_HH']/sH['HHSize']
+
+
 sH['2_3WAvailable']=0
 sH.loc[sH['Type_V1']==2,'2_3WAvailable']=1
 sH.loc[sH['Type_V2']==2,'2_3WAvailable']=1

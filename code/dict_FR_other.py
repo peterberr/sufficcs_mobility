@@ -1,13 +1,13 @@
 import pickle
 
 var_dict_H = {'Sector_Zone':'ZFM','Sample':'ECH', # Variables related to administrative boundary units and identifiers
-'BikeAvailable':'M21', 'CarAvailable':'M6','CarOwnershipHH':'M6','2_3WAvailable':'M14','HouseType':'M1','HouseTenure':'M2','HouseTenureAgg':'M2','HH_Weight':'COE0'}
+'BikeAvailable':'M21', 'CarAvailable':'M6','CarOwnershipHH':'M6','CarOwnershipHH_num':'M6','2_3WAvailable':'M14','HouseType':'M1','HouseTenure':'M2','HouseTenureAgg':'M2','HH_Weight':'COE0'}
 
 # in Montpellier (and other cities potentially), electric bikes are a subset of bikes, so unneccessary to create an additional 'electric bike available' variable
 value_dict_H={'Sector_Zone': {}, 'Sample': {}, # Variables related to administrative boundary units and identifiers
 'BikeAvailable': {0:0, 1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1,12:1,13:1,14:1,15:1},
 'CarAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1,7:1,8:1,9:1},
-'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1,7:1,8:1,9:1},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1,7:1,8:1,9:1},'CarOwnershipHH_num':{},
 '2_3WAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
 'HouseType': {1:'SFH', 2:'SFH', 3:'MFH_small', 4:'MFH_large', 5:'Unknown'},
 'HouseTenure': {1:'Owner', 2:'Renter_Social', 3:'Renter_Private', 4:'Rent_Free', 5:'Renter_Private',6:'Unknown',7:'Unknown',8:'Unknown'},
@@ -15,7 +15,7 @@ value_dict_H={'Sector_Zone': {}, 'Sample': {}, # Variables related to administra
 'HH_Weight':{}
 }
 
-na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'2_3WAvailable':0,
+na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'CarOwnershipHH_num':0,'2_3WAvailable':0,
 'HouseType':'Unknown','HouseTenure':'Unknown','HouseTenureAgg':'Unknown'}
 
 var_dict_P = {'Sector_Zone':'ZFP','Sample':'ECH','Person':'PER', # Variables related to administrative boundary units and identifiers

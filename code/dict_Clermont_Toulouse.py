@@ -11,12 +11,12 @@ value_dict_H0={'IncomeDetailed': {1: 'Under1000', 2: '1000-2000', 3: '2000-3000'
 # second the dictionaries needed to extract all other files from the standardized household, person, and trip (W) files
 
 var_dict_H = {'Sector_Zone':'ZFM','Sample':'ECH', # Variables related to administrative boundary units and identifiers
-'BikeAvailable':'M21', 'CarAvailable':'M6','CarOwnershipHH':'M6','2_3WAvailable':'M14','HouseType':'M1','HouseTenure':'M2','HouseTenureAgg':'M2','HH_Weight':'COE0'}
+'BikeAvailable':'M21', 'CarAvailable':'M6','CarOwnershipHH':'M6','CarOwnershipHH_num':'M6','2_3WAvailable':'M14','HouseType':'M1','HouseTenure':'M2','HouseTenureAgg':'M2','HH_Weight':'COE0'}
 
 value_dict_H={'Sector_Zone': {}, 'Sample': {}, # Variables related to administrative boundary units and identifiers
 'BikeAvailable': {0:0, 1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1,12:1,13:1,14:1,15:1},
 'CarAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
-'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},'CarOwnershipHH_num':{},
 '2_3WAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1},
 'HouseType': {1:'SFH', 2:'SFH', 3:'MFH_small', 4:'MFH_large', 5:'Unknown'},
 'HouseTenure': {1:'Owner', 2:'Renter_Social', 3:'Renter_Private', 4:'Rent_Free', 5:'Renter_Private',6:'Unknown',7:'Unknown',8:'Unknown'},
@@ -24,7 +24,7 @@ value_dict_H={'Sector_Zone': {}, 'Sample': {}, # Variables related to administra
 'HH_Weight':{}
 }
 
-na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'2_3WAvailable':0,
+na_dict_H={'BikeAvailable':0,'CarAvailable':0,'CarOwnershipHH':0,'CarOwnershipHH_num':0,'2_3WAvailable':0,
 'HouseType':'Unknown','HouseTenure':'Unknown','HouseTenureAgg':'Unknown'}
 
 var_dict_P = {'Sector_Zone':'ZFP','Sample':'ECH','Person':'PER', # Variables related to administrative boundary units and identifiers
@@ -54,7 +54,7 @@ na_dict_P={'Occupation':'Other','Education':'Unknown','Work/Study_AtHome':0,'Wor
 var_dict_W={'Sector_Zone':'ZFD','Sample':'ECH','Person':'PER','Trip':'NDEP', # Variables related to administrative boundary units and identifiers
 'Ori_Sec_Zone':'D3','Des_Sec_Zone':'D7',
 'Time':'D4','Ori_Reason1':'D2A','Ori_Reason2':'D2B','Des_Reason1':'D5A','Des_Reason2':'D5B',
-'Mode':'MODP','Trip_Distance':'D12','Trip_Duration':'D9','N_Stops':'D6','N_Legs':'D10'
+'Mode':'MODP','Mode_disagg':'MODP','Trip_Distance':'D12','Trip_Duration':'D9','N_Stops':'D6','N_Legs':'D10'
 }
 
 value_dict_W={'Sector_Zone': {}, 'Sample': {}, 'Person': {},'Trip':{},
@@ -63,15 +63,45 @@ value_dict_W={'Sector_Zone': {}, 'Sample': {}, 'Person': {},'Trip':{},
 'Mode':{1:'Foot',10:'Bike',11:'Bike',12:'Bike',13:'2_3_Wheel',14:'2_3_Wheel',15:'2_3_Wheel',16:'2_3_Wheel',17:'2_3_Wheel',18:'2_3_Wheel',21:'Car',22:'Car',
 31:'Transit',32:'Transit',33:'Transit',37:'Transit',38:'Transit',39:'Transit',41:'Transit',42:'Transit',51:'Transit',71:'Transit',
 61:'Car',81:'Car',82:'Car',91:'Other',92:'Other',93:'Foot',94:'Foot',95:'Other'}, # assume 93 (rollerblades/scooters) and 94 (wheelchairs) are same as walking by foot, which is generally true from an energy perspective
+'Mode_disagg':{1:'Foot',10:'Bike',11:'Bike',12:'Bike',13:'2_3_Wheel',14:'2_3_Wheel',15:'2_3_Wheel',16:'2_3_Wheel',17:'2_3_Wheel',18:'2_3_Wheel',21:'Car',22:'Car',
+31:'Bus',32:'Tram',33:'UBahn',37:'Car',38:'Bus',39:'Bus',41:'Bus',42:'Bus',51:'Train',71:'Car',
+61:'Car',81:'Car',82:'Car',91:'Other',92:'Other',93:'Foot',94:'Foot',95:'Other'}, # assume 93 (rollerblades/scooters) and 94 (wheelchairs) are same as walking by foot, which is generally true from an energy perspective
 'Trip_Distance':{},'Trip_Duration':{},'N_Stops':{},'N_Legs':{}
 }
 
 na_dict_W={}
 
+var_dict_T={'Sector_Zone':'ZFT','Sample':'ECH','Person':'PER','Trip':'NDEP','Leg':'T1', # Variables related to administrative boundary units and identifiers
+'Ori_Sec_Zone':'T4','Des_Sec_Zone':'T5',
+'Mode':'T3','Mode_disagg':'T3','N_People':'T8','N_Adult':'T8A','N_Child':'T8B','Trip_Distance':'T13'
+}
+
+# includes mode_disagg, which includes modes of UBahn, SBahn, Train, Bus, Tram. Assume demand response transit (#37) and employer transport (#71) are by car, and that unspecified 'other networks' (38,39) and departmental public transit (41) are by bus
+value_dict_T={'Sector_Zone': {}, 'Sample': {}, 'Person': {},'Trip':{},'Leg':{},
+'Ori_Sec_Zone':{},'Des_Sec_Zone':{}, # these O-D variables need further modification to split out sectors and zones
+'Mode':{1:'Foot',10:'Bike',11:'Bike',12:'Bike',13:'2_3_Wheel',14:'2_3_Wheel',15:'2_3_Wheel',16:'2_3_Wheel',17:'2_3_Wheel',18:'2_3_Wheel',21:'Car',22:'Car',
+31:'Transit',32:'Transit',33:'Transit',37:'Car',38:'Transit',39:'Transit',41:'Transit',42:'Transit',51:'Transit',71:'Car',
+61:'Car',81:'Car',82:'Car',91:'Other',92:'Other',93:'Foot',94:'Foot',95:'Other'}, # assume 93 (rollerblades/scooters) and 94 (wheelchairs) are same as walking by foot, which is generally true from an energy perspective
+'N_People':{},'N_Adult':{},'N_Child':{},'Trip_Distance':{},
+
+'Mode_disagg':{1:'Foot',10:'Bike',11:'Bike',12:'Bike',13:'2_3_Wheel',14:'2_3_Wheel',15:'2_3_Wheel',16:'2_3_Wheel',17:'2_3_Wheel',18:'2_3_Wheel',21:'Car',22:'Car',
+31:'Bus',32:'Tram',33:'UBahn',37:'Car',38:'Bus',39:'Bus',41:'Bus',42:'Bus',51:'Train',71:'Car',
+61:'Car',81:'Car',82:'Car',91:'Other',92:'Other',93:'Foot',94:'Foot',95:'Other'}, # assume 93 (rollerblades/scooters) and 94 (wheelchairs) are same as walking by foot, which is generally true from an energy perspective
+'N_People':{},'N_Adult':{},'N_Child':{},'Trip_Distance':{}
+}
+
+na_dict_T={}
+
 # Combine variable, value, and na dictionaries
-var_all = {'HH0': var_dict_H0, 'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
-value_all = {'HH0': value_dict_H0, 'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W}
-na_all = {'HH': na_dict_H,'P':na_dict_P,'W':na_dict_W}
+var_all = {'HH0': var_dict_H0,'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W,'T':var_dict_T}
+value_all = {'HH0': value_dict_H0,'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W,'T':value_dict_T}
+na_all = {'HH': na_dict_H,'P':na_dict_P,'W':na_dict_W,'T':na_dict_T}
+
+
+# # Combine variable, value, and na dictionaries
+# var_all = {'HH0': var_dict_H0, 'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
+# value_all = {'HH0': value_dict_H0, 'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W}
+# na_all = {'HH': na_dict_H,'P':na_dict_P,'W':na_dict_W}
 
 # save combined dictionaries
 with open('../dictionaries/Clermont_var.pkl', 'wb') as f:
@@ -91,8 +121,13 @@ value_dict_H0={'IncomeDetailed': {1: 'Under1000', 2: '1000-2000', 3: '2000-3000'
 'Sample': {}
 }
 
-var_all = {'HH0': var_dict_H0, 'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
-value_all = {'HH0': value_dict_H0, 'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W}
+# var_all = {'HH0': var_dict_H0, 'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W}
+# value_all = {'HH0': value_dict_H0, 'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W}
+
+# Combine variable, value, and na dictionaries
+var_all = {'HH0': var_dict_H0,'HH': var_dict_H,'P':var_dict_P,'W':var_dict_W,'T':var_dict_T}
+value_all = {'HH0': value_dict_H0,'HH': value_dict_H,'P':value_dict_P,'W':value_dict_W,'T':value_dict_T}
+na_all = {'HH': na_dict_H,'P':na_dict_P,'W':na_dict_W,'T':na_dict_T}
 
 # save combined dictionaries
 with open('../dictionaries/Toulouse_var.pkl', 'wb') as f:

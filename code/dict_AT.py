@@ -2,7 +2,7 @@ import pickle
 
 var_dict_H = {'Res_geocode':'hh_wohngemeinde','HHNR':'hh_nr', # Variables related to administrative boundary units and identifiers
 'HHSize':'hh_gr','N_Adult':'hh_grue18','N_6-17':'hh_gr617','N_<6':'hh_gru6','IncomeDescriptive':'hh_wirtschsituation','IncomeDescriptiveNumeric':'hh_wirtschsituation',  # household size and income
-'BikeAvailable':'fzg_radges','EBikeAvailable':'fzg_e_rad','2_3WAvailable':'fzg_mot','CarAvailable':'fzg_pkw','CarOwnershipHH':'fzg_pkw', # ownership of transport vehicles, including electric bikes
+'BikeAvailable':'fzg_radges','EBikeAvailable':'fzg_e_rad','2_3WAvailable':'fzg_mot','CarAvailable':'fzg_pkw','CarOwnershipHH':'fzg_pkw','CarOwnershipHH_num':'fzg_pkw',  # ownership of transport vehicles, including electric bikes
 'Time2Transit':'hh_oev_entf', # Variables related to proximity to transit
 'HH_Weight':'hh_hochrechnungsfaktor'}
 
@@ -13,12 +13,12 @@ value_dict_H={'Res_geocode': {}, 'HHNR': {}, 'HHSize':{},'N_Adult':{},'N_6-17':{
 'EBikeAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1,-90:0},
 '2_3WAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-90:0},
 'CarAvailable': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-90:0},
-'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-90:0},
+'CarOwnershipHH': {0:0, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,-90:0},'CarOwnershipHH_num':{},
 'Time2Transit':{},
 'HH_Weight':{}
 }
 
-na_dict_H={'IncomeDescriptive':'Unknown','BikeAvailable':0,'EBikeAvailable':0,'2_3WAvailable':0,'CarAvailable':0, 'CarOwnershipHH':0}
+na_dict_H={'IncomeDescriptive':'Unknown','BikeAvailable':0,'EBikeAvailable':0,'2_3WAvailable':0,'CarAvailable':0, 'CarOwnershipHH':0,'CarOwnershipHH_num':0}
 
 var_dict_P = {'HHNR':'hh_nr','Person':'pers_nr', # Variables related to administrative boundary units and identifiers
 'Age':'pers_alter','Sex':'pers_geschlecht', # i don't see a 'relationship' variable in srv. the trip month and day coming from the trip file

@@ -117,6 +117,13 @@ sH.loc[(sH['Week']>34) & (sH['Week']<48),'Season']='Autumn'
 
 # calculate household size from the sP data !! Not required for Paris !!
 
+# calculate total number of cars per household, and per person
+sH.loc[sH['CarOwnershipHH_num']<0,'CarOwnershipHH_num']=0
+sH['Car_HH']=sH['CarOwnershipHH_num']
+sH['Car_cap']=sH['Car_HH']/sH['HHSize']
+
+sH.drop(columns='CarOwnershipHH_num',inplace=True)
+
 # address inconsistencies with the Person 'Education' variable, arising from respondents who have completed a certain level of education/training responding no dimploma yet, even though they have lower diplomas than the one they are currently studying for
 # these assumptions are based on French law, in which it is mandatory to go to school until age 16 (end of secondary school), so anyone in an occupation post-16 is very likely to have some education. https://www.expatica.com/fr/education/children-education/french-education-system-101147/
 # they may need defined differently for non-French surveys
